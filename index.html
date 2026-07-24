@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>apa7ref — genera referencias APA 7 desde URLs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #e6ddc4;
+    --paper-2: #ddd2ae;
+    --paper-line: #b7a97f;
+    --wood: #5a3f2c;
+    --wood-dark: #47301f;
+    --ink: #241f16;
+    --ink-soft: #635a45;
+    --stamp: #a13a2d;
+    --teal: #1f4f43;
+    --card-shadow: rgba(36, 31, 22, 0.18);
+    --radius-card: 3px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--wood);
+    background-image:
+      repeating-linear-gradient(90deg, rgba(0,0,0,0.06) 0px, rgba(0,0,0,0.06) 1px, transparent 1px, transparent 64px),
+      linear-gradient(180deg, var(--wood) 0%, var(--wood-dark) 100%);
+    color: var(--ink);
+    font-family: 'IBM Plex Mono', monospace;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--teal); }
+  a:focus-visible, button:focus-visible {
+    outline: 3px solid var(--stamp);
+    outline-offset: 2px;
+  }
+
+  .wrap {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  /* ---------- drawer label header ---------- */
+  header {
+    padding: 56px 24px 40px;
+    text-align: center;
+  }
+
+  .tab {
+    display: inline-block;
+    background: var(--paper);
+    border: 1px solid var(--paper-line);
+    border-bottom: none;
+    padding: 6px 22px;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    border-radius: 4px 4px 0 0;
+  }
+
+  .drawer-front {
+    background: var(--paper);
+    border: 1px solid var(--paper-line);
+    border-radius: 2px;
+    padding: 40px 32px 32px;
+    box-shadow: 0 14px 30px var(--card-shadow);
+    position: relative;
+  }
+
+  .call-number {
+    font-size: 12px;
+    color: var(--ink-soft);
+    letter-spacing: 0.08em;
+    margin: 0 0 18px;
+  }
+
+  h1 {
+    font-family: 'Source Serif 4', serif;
+    font-weight: 700;
+    font-size: clamp(34px, 6vw, 56px);
+    margin: 0 0 10px;
+    letter-spacing: -0.01em;
+  }
+
+  .tagline {
+    font-size: 15px;
+    color: var(--ink-soft);
+    max-width: 46ch;
+    margin: 0 auto 26px;
+    line-height: 1.6;
+  }
+
+  .cta-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    text-decoration: none;
+    padding: 10px 18px;
+    border-radius: 2px;
+    border: 1px solid var(--ink);
+    color: var(--ink);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform 0.15s ease, background 0.15s ease;
+  }
+
+  .btn.primary {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .btn:hover { transform: translateY(-2px); }
+  @media (prefers-reduced-motion: reduce) {
+    .btn:hover, .card:hover { transform: none; }
+  }
+
+  .stamp {
+    position: absolute;
+    top: 26px;
+    right: 30px;
+    border: 2px solid var(--stamp);
+    color: var(--stamp);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    padding: 5px 10px;
+    border-radius: 4px;
+    transform: rotate(6deg);
+    opacity: 0.85;
+  }
+
+  /* ---------- example reference block ---------- */
+  .example {
+    margin: 28px auto 0;
+    max-width: 640px;
+    background: #fbf7ea;
+    border: 1px dashed var(--paper-line);
+    border-radius: 2px;
+    padding: 16px 20px;
+    text-align: left;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--ink);
+  }
+
+  .example .label {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--teal);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  /* ---------- section headings ---------- */
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin: 64px 0 22px;
+  }
+
+  .section-head .num {
+    font-family: 'Source Serif 4', serif;
+    font-size: 13px;
+    color: var(--paper);
+    background: var(--stamp);
+    padding: 3px 9px;
+    border-radius: 2px;
+  }
+
+  .section-head h2 {
+    font-family: 'Source Serif 4', serif;
+    color: var(--paper);
+    font-size: 22px;
+    margin: 0;
+    font-weight: 600;
+  }
+
+  .section-head .rule {
+    flex: 1;
+    height: 1px;
+    background: rgba(230, 221, 196, 0.28);
+  }
+
+  /* ---------- card catalog grid ---------- */
+  .catalog {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 20px;
+  }
+
+  .card {
+    background: var(--paper);
+    border: 1px solid var(--paper-line);
+    border-radius: var(--radius-card);
+    padding: 18px 18px 30px;
+    position: relative;
+    box-shadow: 0 6px 14px var(--card-shadow);
+    transition: transform 0.15s ease;
+  }
+
+  .card:hover { transform: translateY(-3px); }
+
+  .card .cat-no {
+    font-size: 10px;
+    color: var(--ink-soft);
+    letter-spacing: 0.08em;
+    margin: 0 0 10px;
+  }
+
+  .card h3 {
+    font-family: 'Source Serif 4', serif;
+    font-size: 16px;
+    margin: 0 0 8px;
+  }
+
+  .card p {
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+
+  .punch {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--wood-dark);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.3);
+  }
+
+  /* ---------- circulation card (install/usage) ---------- */
+  .circulation {
+    background: var(--paper);
+    border: 1px solid var(--paper-line);
+    border-radius: 2px;
+    box-shadow: 0 10px 24px var(--card-shadow);
+    overflow: hidden;
+  }
+
+  .circulation .row {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    border-bottom: 1px solid var(--paper-line);
+  }
+
+  .circulation .row:last-child { border-bottom: none; }
+
+  .circulation .row .step {
+    padding: 16px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--ink-soft);
+    border-right: 1px dashed var(--paper-line);
+    text-transform: uppercase;
+  }
+
+  .circulation .row pre {
+    margin: 0;
+    padding: 16px;
+    font-size: 13px;
+    overflow-x: auto;
+    color: var(--ink);
+  }
+
+  @media (max-width: 560px) {
+    .circulation .row {
+      grid-template-columns: 1fr;
+    }
+    .circulation .row .step {
+      border-right: none;
+      border-bottom: 1px dashed var(--paper-line);
+    }
+  }
+
+  /* ---------- due date stamp footer ---------- */
+  .due-date {
+    margin-top: 64px;
+    background: var(--paper);
+    border: 1px solid var(--paper-line);
+    border-radius: 2px;
+    box-shadow: 0 10px 24px var(--card-shadow);
+  }
+
+  .due-date .title-row {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--paper-line);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  table.stamps {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  table.stamps td {
+    padding: 12px 20px;
+    border-bottom: 1px dashed var(--paper-line);
+  }
+
+  table.stamps tr:last-child td { border-bottom: none; }
+
+  table.stamps td.k { color: var(--ink-soft); width: 40%; }
+  table.stamps td.v a { text-decoration: none; }
+  table.stamps td.v a:hover { text-decoration: underline; }
+
+  footer {
+    text-align: center;
+    margin-top: 48px;
+    font-size: 11px;
+    color: rgba(230, 221, 196, 0.55);
+    letter-spacing: 0.06em;
+  }
+</style>
+</head>
+<body>
+
+<span class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">
+  Página de índice del proyecto apa7ref: herramienta en Python para generar referencias bibliográficas APA 7 a partir de URLs.
+</span>
+
+<div class="wrap">
+
+  <header>
+    <span class="tab">catálogo · biblioteca de referencias</span>
+    <div class="drawer-front">
+      <span class="stamp">catalogado</span>
+      <p class="call-number">REF 010.72&nbsp;·&nbsp;apa7ref&nbsp;v0.1.0</p>
+      <h1>apa7ref</h1>
+      <p class="tagline">
+        Convierte cualquier URL en una referencia bibliográfica con formato
+        APA&nbsp;7, lista para tu lista de referencias. Herramienta de línea
+        de comandos y librería en Python.
+      </p>
+      <div class="cta-row">
+        <a class="btn primary" href="https://github.com/tu-usuario/apa7ref">Ver en GitHub</a>
+        <a class="btn" href="#instalacion">Instalación</a>
+        <a class="btn" href="#modulos">Estructura del proyecto</a>
+      </div>
+
+      <div class="example">
+        <span class="label">Ficha de salida</span>
+        Rojas, A. M. (2023, mayo 10). Cómo aprender Python. Ejemplo Tech.
+        https://ejemplo.com/articulo
+      </div>
+    </div>
+  </header>
+
+  <section id="modulos">
+    <div class="section-head">
+      <span class="num">01</span>
+      <h2>Fichero del proyecto</h2>
+      <span class="rule"></span>
+    </div>
+
+    <div class="catalog">
+      <article class="card">
+        <p class="cat-no">apa7ref / extractor.py</p>
+        <h3>Extracción</h3>
+        <p>Descarga el HTML de la URL y busca metadatos de autor, título,
+        sitio y fecha en etiquetas meta comunes, con respaldos cuando
+        faltan.</p>
+        <span class="punch" aria-hidden="true"></span>
+      </article>
+
+      <article class="card">
+        <p class="cat-no">apa7ref / formatter.py</p>
+        <h3>Formateo APA&nbsp;7</h3>
+        <p>Normaliza autor y fecha al estilo APA 7, distingue autores
+        individuales de organizaciones y arma la referencia final.</p>
+        <span class="punch" aria-hidden="true"></span>
+      </article>
+
+      <article class="card">
+        <p class="cat-no">apa7ref / cli.py</p>
+        <h3>Línea de comandos</h3>
+        <p>Procesa una o varias URLs, lee listas desde archivo y exporta
+        las referencias generadas a un archivo de salida.</p>
+        <span class="punch" aria-hidden="true"></span>
+      </article>
+
+      <article class="card">
+        <p class="cat-no">tests / test_formatter.py</p>
+        <h3>Pruebas</h3>
+        <p>Seis pruebas unitarias que verifican autor, fecha, organización
+        y cita en texto.</p>
+        <span class="punch" aria-hidden="true"></span>
+      </article>
+
+      <article class="card">
+        <p class="cat-no">README.md · LICENSE</p>
+        <h3>Documentación</h3>
+        <p>Guía de instalación, uso por CLI y como librería, y licencia
+        MIT.</p>
+        <span class="punch" aria-hidden="true"></span>
+      </article>
+
+      <article class="card">
+        <p class="cat-no">pyproject.toml</p>
+        <h3>Empaquetado</h3>
+        <p>Define el paquete instalable y registra el comando
+        <code>apa7ref</code> en el sistema.</p>
+        <span class="punch" aria-hidden="true"></span>
+      </article>
+    </div>
+  </section>
+
+  <section id="instalacion">
+    <div class="section-head">
+      <span class="num">02</span>
+      <h2>Tarjeta de circulación</h2>
+      <span class="rule"></span>
+    </div>
+
+    <div class="circulation">
+      <div class="row">
+        <div class="step">Instalar</div>
+        <pre>pip install -e .</pre>
+      </div>
+      <div class="row">
+        <div class="step">Una URL</div>
+        <pre>apa7ref https://ejemplo.com/articulo</pre>
+      </div>
+      <div class="row">
+        <div class="step">Desde archivo</div>
+        <pre>apa7ref --file urls.txt --output referencias.txt</pre>
+      </div>
+      <div class="row">
+        <div class="step">Como librería</div>
+        <pre>from apa7ref import fetch_metadata, build_reference
+
+meta = fetch_metadata(url)
+print(build_reference(meta))</pre>
+      </div>
+    </div>
+  </section>
+
+  <div class="due-date">
+    <div class="title-row">Enlaces</div>
+    <table class="stamps">
+      <tr>
+        <td class="k">Repositorio</td>
+        <td class="v"><a href="https://github.com/tu-usuario/apa7ref">github.com/tu-usuario/apa7ref</a></td>
+      </tr>
+      <tr>
+        <td class="k">Licencia</td>
+        <td class="v">MIT</td>
+      </tr>
+      <tr>
+        <td class="k">Requisitos</td>
+        <td class="v">Python 3.9+, requests, beautifulsoup4</td>
+      </tr>
+    </table>
+  </div>
+
+  <footer>apa7ref — índice del proyecto</footer>
+
+</div>
+</body>
+</html>
