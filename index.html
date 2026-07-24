@@ -23,7 +23,6 @@
   }
 
   * { box-sizing: border-box; }
-
   html { scroll-behavior: smooth; }
 
   body {
@@ -38,22 +37,15 @@
   }
 
   a { color: var(--teal); }
-  a:focus-visible, button:focus-visible {
+  a:focus-visible, button:focus-visible, textarea:focus-visible, input:focus-visible {
     outline: 3px solid var(--stamp);
     outline-offset: 2px;
   }
 
-  .wrap {
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 0 24px 80px;
-  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 24px 80px; }
 
   /* ---------- drawer label header ---------- */
-  header {
-    padding: 56px 24px 40px;
-    text-align: center;
-  }
+  header { padding: 56px 24px 40px; text-align: center; }
 
   .tab {
     display: inline-block;
@@ -77,12 +69,7 @@
     position: relative;
   }
 
-  .call-number {
-    font-size: 12px;
-    color: var(--ink-soft);
-    letter-spacing: 0.08em;
-    margin: 0 0 18px;
-  }
+  .call-number { font-size: 12px; color: var(--ink-soft); letter-spacing: 0.08em; margin: 0 0 18px; }
 
   h1 {
     font-family: 'Source Serif 4', serif;
@@ -96,24 +83,92 @@
     font-size: 15px;
     color: var(--ink-soft);
     max-width: 46ch;
-    margin: 0 auto 26px;
+    margin: 0 auto 6px;
     line-height: 1.6;
   }
 
-  .cta-row {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-    flex-wrap: wrap;
+  .stamp {
+    position: absolute; top: 26px; right: 30px;
+    border: 2px solid var(--stamp); color: var(--stamp);
+    font-size: 11px; letter-spacing: 0.1em; padding: 5px 10px;
+    border-radius: 4px; transform: rotate(6deg); opacity: 0.85;
   }
+
+  /* ---------- section headings ---------- */
+  .section-head { display: flex; align-items: baseline; gap: 14px; margin: 56px 0 22px; }
+
+  .section-head .num {
+    font-family: 'Source Serif 4', serif; font-size: 13px; color: var(--paper);
+    background: var(--stamp); padding: 3px 9px; border-radius: 2px;
+  }
+
+  .section-head h2 {
+    font-family: 'Source Serif 4', serif; color: var(--paper); font-size: 22px;
+    margin: 0; font-weight: 600;
+  }
+
+  .section-head .rule { flex: 1; height: 1px; background: rgba(230, 221, 196, 0.28); }
+
+  /* ---------- request slip (generator form) ---------- */
+  .slip {
+    background: var(--paper);
+    border: 1px solid var(--paper-line);
+    border-radius: 2px;
+    padding: 26px 28px 24px;
+    box-shadow: 0 10px 24px var(--card-shadow);
+  }
+
+  .slip label {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 8px;
+  }
+
+  .slip textarea {
+    width: 100%;
+    min-height: 96px;
+    resize: vertical;
+    background: #fbf7ea;
+    border: 1px solid var(--paper-line);
+    border-radius: 2px;
+    padding: 12px 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13.5px;
+    color: var(--ink);
+    line-height: 1.6;
+  }
+
+  .slip .row-below {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  .checkbox-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+  }
+
+  .checkbox-line input { accent-color: var(--stamp); width: 15px; height: 15px; }
 
   .btn {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 13px;
+    cursor: pointer;
     text-decoration: none;
     padding: 10px 18px;
     border-radius: 2px;
     border: 1px solid var(--ink);
+    background: transparent;
     color: var(--ink);
     display: inline-flex;
     align-items: center;
@@ -121,90 +176,62 @@
     transition: transform 0.15s ease, background 0.15s ease;
   }
 
-  .btn.primary {
-    background: var(--ink);
-    color: var(--paper);
-  }
-
+  .btn.primary { background: var(--ink); color: var(--paper); }
   .btn:hover { transform: translateY(-2px); }
+  .btn:disabled { opacity: 0.5; cursor: default; transform: none; }
+  .btn.small { font-size: 11px; padding: 6px 12px; }
+
   @media (prefers-reduced-motion: reduce) {
     .btn:hover, .card:hover { transform: none; }
   }
 
-  .stamp {
-    position: absolute;
-    top: 26px;
-    right: 30px;
-    border: 2px solid var(--stamp);
-    color: var(--stamp);
-    font-size: 11px;
-    letter-spacing: 0.1em;
-    padding: 5px 10px;
-    border-radius: 4px;
-    transform: rotate(6deg);
-    opacity: 0.85;
+  .note {
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    margin-top: 14px;
+    line-height: 1.6;
+    border-top: 1px dashed var(--paper-line);
+    padding-top: 12px;
   }
 
-  /* ---------- example reference block ---------- */
-  .example {
-    margin: 28px auto 0;
-    max-width: 640px;
-    background: #fbf7ea;
-    border: 1px dashed var(--paper-line);
+  /* ---------- results ---------- */
+  #results { display: flex; flex-direction: column; gap: 14px; margin-top: 22px; }
+
+  .result-card {
+    background: var(--paper);
+    border: 1px solid var(--paper-line);
     border-radius: 2px;
-    padding: 16px 20px;
-    text-align: left;
-    font-size: 13px;
+    padding: 16px 18px;
+    box-shadow: 0 6px 14px var(--card-shadow);
+  }
+
+  .result-card .src {
+    font-size: 10.5px;
+    color: var(--ink-soft);
+    word-break: break-all;
+    margin: 0 0 8px;
+  }
+
+  .result-card .ref-text {
+    font-size: 14px;
     line-height: 1.7;
     color: var(--ink);
+    margin: 0 0 6px;
   }
 
-  .example .label {
-    font-size: 10px;
-    letter-spacing: 0.12em;
+  .result-card .intext {
+    font-size: 12px;
     color: var(--teal);
-    text-transform: uppercase;
-    margin-bottom: 6px;
-    display: block;
+    margin: 0 0 10px;
   }
 
-  /* ---------- section headings ---------- */
-  .section-head {
-    display: flex;
-    align-items: baseline;
-    gap: 14px;
-    margin: 64px 0 22px;
-  }
+  .result-card.pending .ref-text { color: var(--ink-soft); }
+  .result-card.error .ref-text { color: var(--stamp); }
 
-  .section-head .num {
-    font-family: 'Source Serif 4', serif;
-    font-size: 13px;
-    color: var(--paper);
-    background: var(--stamp);
-    padding: 3px 9px;
-    border-radius: 2px;
-  }
+  .result-actions { display: flex; gap: 8px; }
 
-  .section-head h2 {
-    font-family: 'Source Serif 4', serif;
-    color: var(--paper);
-    font-size: 22px;
-    margin: 0;
-    font-weight: 600;
-  }
-
-  .section-head .rule {
-    flex: 1;
-    height: 1px;
-    background: rgba(230, 221, 196, 0.28);
-  }
-
-  /* ---------- card catalog grid ---------- */
-  .catalog {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-    gap: 20px;
-  }
+  /* ---------- card catalog grid (project modules) ---------- */
+  .catalog { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 20px; }
 
   .card {
     background: var(--paper);
@@ -217,37 +244,14 @@
   }
 
   .card:hover { transform: translateY(-3px); }
-
-  .card .cat-no {
-    font-size: 10px;
-    color: var(--ink-soft);
-    letter-spacing: 0.08em;
-    margin: 0 0 10px;
-  }
-
-  .card h3 {
-    font-family: 'Source Serif 4', serif;
-    font-size: 16px;
-    margin: 0 0 8px;
-  }
-
-  .card p {
-    font-size: 12.5px;
-    line-height: 1.6;
-    color: var(--ink-soft);
-    margin: 0;
-  }
+  .card .cat-no { font-size: 10px; color: var(--ink-soft); letter-spacing: 0.08em; margin: 0 0 10px; }
+  .card h3 { font-family: 'Source Serif 4', serif; font-size: 16px; margin: 0 0 8px; }
+  .card p { font-size: 12.5px; line-height: 1.6; color: var(--ink-soft); margin: 0; }
 
   .punch {
-    position: absolute;
-    bottom: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: var(--wood-dark);
-    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.3);
+    position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--wood-dark); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.3);
   }
 
   /* ---------- circulation card (install/usage) ---------- */
@@ -259,89 +263,46 @@
     overflow: hidden;
   }
 
-  .circulation .row {
-    display: grid;
-    grid-template-columns: 130px 1fr;
-    border-bottom: 1px solid var(--paper-line);
-  }
-
+  .circulation .row { display: grid; grid-template-columns: 130px 1fr; border-bottom: 1px solid var(--paper-line); }
   .circulation .row:last-child { border-bottom: none; }
 
   .circulation .row .step {
-    padding: 16px;
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    color: var(--ink-soft);
-    border-right: 1px dashed var(--paper-line);
-    text-transform: uppercase;
+    padding: 16px; font-size: 11px; letter-spacing: 0.08em; color: var(--ink-soft);
+    border-right: 1px dashed var(--paper-line); text-transform: uppercase;
   }
 
-  .circulation .row pre {
-    margin: 0;
-    padding: 16px;
-    font-size: 13px;
-    overflow-x: auto;
-    color: var(--ink);
-  }
+  .circulation .row pre { margin: 0; padding: 16px; font-size: 13px; overflow-x: auto; color: var(--ink); white-space: pre-wrap; }
 
   @media (max-width: 560px) {
-    .circulation .row {
-      grid-template-columns: 1fr;
-    }
-    .circulation .row .step {
-      border-right: none;
-      border-bottom: 1px dashed var(--paper-line);
-    }
+    .circulation .row { grid-template-columns: 1fr; }
+    .circulation .row .step { border-right: none; border-bottom: 1px dashed var(--paper-line); }
   }
 
-  /* ---------- due date stamp footer ---------- */
+  /* ---------- links footer ---------- */
   .due-date {
-    margin-top: 64px;
-    background: var(--paper);
-    border: 1px solid var(--paper-line);
-    border-radius: 2px;
-    box-shadow: 0 10px 24px var(--card-shadow);
+    margin-top: 64px; background: var(--paper); border: 1px solid var(--paper-line);
+    border-radius: 2px; box-shadow: 0 10px 24px var(--card-shadow);
   }
 
   .due-date .title-row {
-    padding: 14px 20px;
-    border-bottom: 1px solid var(--paper-line);
-    font-size: 11px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--ink-soft);
+    padding: 14px 20px; border-bottom: 1px solid var(--paper-line);
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft);
   }
 
-  table.stamps {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-  }
-
-  table.stamps td {
-    padding: 12px 20px;
-    border-bottom: 1px dashed var(--paper-line);
-  }
-
+  table.stamps { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.stamps td { padding: 12px 20px; border-bottom: 1px dashed var(--paper-line); }
   table.stamps tr:last-child td { border-bottom: none; }
-
   table.stamps td.k { color: var(--ink-soft); width: 40%; }
   table.stamps td.v a { text-decoration: none; }
   table.stamps td.v a:hover { text-decoration: underline; }
 
-  footer {
-    text-align: center;
-    margin-top: 48px;
-    font-size: 11px;
-    color: rgba(230, 221, 196, 0.55);
-    letter-spacing: 0.06em;
-  }
+  footer { text-align: center; margin-top: 48px; font-size: 11px; color: rgba(230, 221, 196, 0.55); letter-spacing: 0.06em; }
 </style>
 </head>
 <body>
 
-<span class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">
-  Página de índice del proyecto apa7ref: herramienta en Python para generar referencias bibliográficas APA 7 a partir de URLs.
+<span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">
+  Página del proyecto apa7ref: generador de referencias bibliográficas APA 7 a partir de URLs, funcional directamente en el navegador.
 </span>
 
 <div class="wrap">
@@ -353,27 +314,50 @@
       <p class="call-number">REF 010.72&nbsp;·&nbsp;apa7ref&nbsp;v0.1.0</p>
       <h1>apa7ref</h1>
       <p class="tagline">
-        Convierte cualquier URL en una referencia bibliográfica con formato
-        APA&nbsp;7, lista para tu lista de referencias. Herramienta de línea
-        de comandos y librería en Python.
+        Pega una o varias URLs y obtén su referencia en formato APA&nbsp;7,
+        generada aquí mismo, en tu navegador.
       </p>
-      <div class="cta-row">
-        <a class="btn primary" href="https://github.com/tu-usuario/apa7ref">Ver en GitHub</a>
-        <a class="btn" href="#instalacion">Instalación</a>
-        <a class="btn" href="#modulos">Estructura del proyecto</a>
-      </div>
-
-      <div class="example">
-        <span class="label">Ficha de salida</span>
-        Rojas, A. M. (2023, mayo 10). Cómo aprender Python. Ejemplo Tech.
-        https://ejemplo.com/articulo
-      </div>
     </div>
   </header>
 
-  <section id="modulos">
+  <section id="generador">
     <div class="section-head">
       <span class="num">01</span>
+      <h2>Solicitud de ficha</h2>
+      <span class="rule"></span>
+    </div>
+
+    <form class="slip" id="ref-form">
+      <label for="urls">URLs (una por línea)</label>
+      <textarea id="urls" placeholder="https://ejemplo.com/articulo
+https://otrositio.com/pagina"></textarea>
+
+      <div class="row-below">
+        <label class="checkbox-line">
+          <input type="checkbox" id="intext-toggle">
+          Incluir cita en texto (Autor, Año)
+        </label>
+        <div style="display:flex; gap:10px;">
+          <button type="button" class="btn small" id="copy-all-btn">Copiar todo</button>
+          <button type="submit" class="btn primary" id="generate-btn">Generar referencias</button>
+        </div>
+      </div>
+
+      <p class="note">
+        La página descarga cada URL a través de un proxy público para evitar
+        restricciones CORS del navegador y lee sus metadatos (autor, título,
+        sitio, fecha). Algunos sitios bloquean este tipo de acceso o no
+        publican metadatos completos; en esos casos revisa y completa la
+        referencia manualmente.
+      </p>
+    </form>
+
+    <div id="results" aria-live="polite"></div>
+  </section>
+
+  <section id="modulos">
+    <div class="section-head">
+      <span class="num">02</span>
       <h2>Fichero del proyecto</h2>
       <span class="rule"></span>
     </div>
@@ -382,9 +366,8 @@
       <article class="card">
         <p class="cat-no">apa7ref / extractor.py</p>
         <h3>Extracción</h3>
-        <p>Descarga el HTML de la URL y busca metadatos de autor, título,
-        sitio y fecha en etiquetas meta comunes, con respaldos cuando
-        faltan.</p>
+        <p>Versión Python de la misma lógica que usa esta página: descarga
+        el HTML y busca metadatos de autor, título, sitio y fecha.</p>
         <span class="punch" aria-hidden="true"></span>
       </article>
 
@@ -421,10 +404,10 @@
       </article>
 
       <article class="card">
-        <p class="cat-no">pyproject.toml</p>
-        <h3>Empaquetado</h3>
-        <p>Define el paquete instalable y registra el comando
-        <code>apa7ref</code> en el sistema.</p>
+        <p class="cat-no">index.html</p>
+        <h3>Esta página</h3>
+        <p>Reimplementa extractor.py y formatter.py en JavaScript para
+        generar referencias directamente en el navegador.</p>
         <span class="punch" aria-hidden="true"></span>
       </article>
     </div>
@@ -432,8 +415,8 @@
 
   <section id="instalacion">
     <div class="section-head">
-      <span class="num">02</span>
-      <h2>Tarjeta de circulación</h2>
+      <span class="num">03</span>
+      <h2>Tarjeta de circulación (paquete Python)</h2>
       <span class="rule"></span>
     </div>
 
@@ -450,13 +433,6 @@
         <div class="step">Desde archivo</div>
         <pre>apa7ref --file urls.txt --output referencias.txt</pre>
       </div>
-      <div class="row">
-        <div class="step">Como librería</div>
-        <pre>from apa7ref import fetch_metadata, build_reference
-
-meta = fetch_metadata(url)
-print(build_reference(meta))</pre>
-      </div>
     </div>
   </section>
 
@@ -472,7 +448,7 @@ print(build_reference(meta))</pre>
         <td class="v">MIT</td>
       </tr>
       <tr>
-        <td class="k">Requisitos</td>
+        <td class="k">Requisitos (paquete Python)</td>
         <td class="v">Python 3.9+, requests, beautifulsoup4</td>
       </tr>
     </table>
@@ -481,5 +457,310 @@ print(build_reference(meta))</pre>
   <footer>apa7ref — índice del proyecto</footer>
 
 </div>
+
+<script>
+(function () {
+  "use strict";
+
+  var MONTHS_ES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+
+  var META_AUTHOR = ["author","article:author","og:author","twitter:creator","citation_author","dc.creator","parsely-author"];
+  var META_TITLE = ["og:title","twitter:title","citation_title"];
+  var META_SITE = ["og:site_name","application-name"];
+  var META_DATE = ["article:published_time","og:published_time","citation_publication_date","citation_date","dc.date","date","publish-date","parsely-pub-date"];
+
+  var ORG_MARKERS = /\b(inc|llc|ltd|corp|company|co\.|team|staff|editorial|redacci[oó]n|news|noticias|university|universidad|department|departamento|agency|agencia)\b/i;
+
+  function getMeta(doc, names) {
+    for (var i = 0; i < names.length; i++) {
+      var el = doc.querySelector('meta[property="' + names[i] + '"]') || doc.querySelector('meta[name="' + names[i] + '"]');
+      if (el) {
+        var content = (el.getAttribute("content") || "").trim();
+        if (content) return content;
+      }
+    }
+    return null;
+  }
+
+  function extractAuthor(doc) {
+    var author = getMeta(doc, META_AUTHOR);
+    if (author) {
+      if (/^https?:\/\//i.test(author)) return null;
+      return author;
+    }
+    var tag = doc.querySelector('[rel="author"]') || doc.querySelector('[class*="author" i]');
+    if (tag && tag.textContent && tag.textContent.trim()) return tag.textContent.trim();
+    return null;
+  }
+
+  function extractTitle(doc) {
+    var title = getMeta(doc, META_TITLE);
+    if (title) return title;
+    if (doc.title && doc.title.trim()) return doc.title.trim();
+    var h1 = doc.querySelector("h1");
+    if (h1 && h1.textContent.trim()) return h1.textContent.trim();
+    return null;
+  }
+
+  function extractSiteName(doc, url) {
+    var site = getMeta(doc, META_SITE);
+    if (site) return site;
+    try {
+      var hostname = new URL(url).hostname.replace(/^www\./, "");
+      return hostname || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function extractPublishedDate(doc) {
+    return getMeta(doc, META_DATE);
+  }
+
+  function parseDate(raw) {
+    if (!raw) return null;
+    var trimmed = raw.trim();
+    if (/^(19|20)\d{2}$/.test(trimmed)) {
+      return { year: parseInt(trimmed, 10), month: null, day: null, onlyYear: true };
+    }
+    var d = new Date(trimmed);
+    if (!isNaN(d.getTime())) {
+      return { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(), onlyYear: false };
+    }
+    var m = trimmed.match(/(19|20)\d{2}/);
+    if (m) return { year: parseInt(m[0], 10), month: null, day: null, onlyYear: true };
+    return null;
+  }
+
+  function formatDateApa(parsed) {
+    if (!parsed) return "s.f.";
+    if (parsed.onlyYear || !parsed.month) return String(parsed.year);
+    return parsed.year + ", " + MONTHS_ES[parsed.month - 1] + " " + parsed.day;
+  }
+
+  function formatAuthor(author) {
+    if (!author) return null;
+    var trimmedAuthor = author.trim();
+    if (ORG_MARKERS.test(trimmedAuthor)) return trimmedAuthor;
+    var parts = trimmedAuthor.split(/\s+/);
+    if (parts.length < 2) return trimmedAuthor;
+    var lastName = parts[parts.length - 1];
+    var firstNames = parts.slice(0, -1);
+    var initials = firstNames.map(function (n) { return n[0] ? n[0].toUpperCase() + "." : ""; }).join(" ");
+    return lastName + ", " + initials;
+  }
+
+  function buildReference(meta) {
+    var parsedDate = parseDate(meta.published_date);
+    var dateStr = formatDateApa(parsedDate);
+
+    var title = (meta.title || "Sin título").trim();
+    if (!/[.?!]$/.test(title)) title += ".";
+
+    var siteName = (meta.site_name || "").trim();
+    var author = formatAuthor(meta.author);
+
+    var authorPart, sitePart;
+    if (author) {
+      authorPart = author + ". (" + dateStr + "). ";
+      sitePart = siteName ? siteName + ". " : "";
+    } else {
+      authorPart = siteName ? siteName + ". (" + dateStr + "). " : "(" + dateStr + "). ";
+      sitePart = "";
+    }
+
+    var reference = authorPart + title + " " + sitePart + meta.url;
+    return reference.replace(/\s{2,}/g, " ").trim();
+  }
+
+  function buildInTextCitation(meta) {
+    var parsedDate = parseDate(meta.published_date);
+    var year = parsedDate ? parsedDate.year : "s.f.";
+    var author = formatAuthor(meta.author) || meta.site_name || "Autor desconocido";
+    var lastName = author.split(",")[0];
+    return "(" + lastName + ", " + year + ")";
+  }
+
+  function normalizeUrl(raw) {
+    var url = raw.trim();
+    if (!url) return null;
+    if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+    return url;
+  }
+
+  function proxyBuilders(url) {
+    var encoded = encodeURIComponent(url);
+    return [
+      function () { return "https://api.allorigins.win/raw?url=" + encoded; },
+      function () { return "https://api.codetabs.com/v1/proxy?quest=" + encoded; },
+      function () { return "https://corsproxy.io/?url=" + encoded; }
+    ];
+  }
+
+  function fetchWithTimeout(url, ms) {
+    var controller = new AbortController();
+    var timer = setTimeout(function () { controller.abort(); }, ms);
+    return fetch(url, { signal: controller.signal }).finally(function () { clearTimeout(timer); });
+  }
+
+  function fetchHtml(url) {
+    var builders = proxyBuilders(url);
+    var attempt = function (index) {
+      if (index >= builders.length) {
+        return Promise.reject(new Error("No se pudo descargar la página (proxies agotados)."));
+      }
+      return fetchWithTimeout(builders[index](), 15000)
+        .then(function (res) {
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          return res.text();
+        })
+        .then(function (text) {
+          if (!text || text.length < 20) throw new Error("Respuesta vacía");
+          return text;
+        })
+        .catch(function () {
+          return attempt(index + 1);
+        });
+    };
+    return attempt(0);
+  }
+
+  function generateReference(rawUrl) {
+    var url = normalizeUrl(rawUrl);
+    if (!url) return Promise.resolve({ ok: false, url: rawUrl, error: "URL vacía." });
+
+    return fetchHtml(url).then(function (html) {
+      var doc = new DOMParser().parseFromString(html, "text/html");
+      var meta = {
+        url: url,
+        title: extractTitle(doc),
+        author: extractAuthor(doc),
+        site_name: extractSiteName(doc, url),
+        published_date: extractPublishedDate(doc)
+      };
+      return {
+        ok: true,
+        url: url,
+        reference: buildReference(meta),
+        inText: buildInTextCitation(meta)
+      };
+    }).catch(function (err) {
+      return { ok: false, url: url, error: (err && err.message) || "No se pudo procesar esta URL." };
+    });
+  }
+
+  function copyText(text, btn) {
+    var done = function () {
+      var original = btn.textContent;
+      btn.textContent = "Copiado";
+      setTimeout(function () { btn.textContent = original; }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(function () { fallbackCopy(text); done(); });
+    } else {
+      fallbackCopy(text);
+      done();
+    }
+  }
+
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+
+  var form = document.getElementById("ref-form");
+  var textarea = document.getElementById("urls");
+  var results = document.getElementById("results");
+  var generateBtn = document.getElementById("generate-btn");
+  var copyAllBtn = document.getElementById("copy-all-btn");
+  var intextToggle = document.getElementById("intext-toggle");
+
+  function renderPending(urls) {
+    results.innerHTML = "";
+    urls.forEach(function (u, i) {
+      var card = document.createElement("div");
+      card.className = "result-card pending";
+      card.id = "result-" + i;
+      card.innerHTML =
+        '<p class="src">' + u + '</p>' +
+        '<p class="ref-text">Generando referencia…</p>';
+      results.appendChild(card);
+    });
+  }
+
+  function renderResult(index, result, includeInText) {
+    var card = document.getElementById("result-" + index);
+    if (!card) return;
+    if (result.ok) {
+      card.className = "result-card";
+      var intextHtml = includeInText ? '<p class="intext">' + escapeHtml(result.inText) + '</p>' : "";
+      card.innerHTML =
+        '<p class="src">' + escapeHtml(result.url) + '</p>' +
+        '<p class="ref-text">' + escapeHtml(result.reference) + '</p>' +
+        intextHtml +
+        '<div class="result-actions"><button type="button" class="btn small copy-one">Copiar</button></div>';
+      var copyBtn = card.querySelector(".copy-one");
+      copyBtn.addEventListener("click", function () {
+        var text = result.reference + (includeInText ? "  " + result.inText : "");
+        copyText(text, copyBtn);
+      });
+    } else {
+      card.className = "result-card error";
+      card.innerHTML =
+        '<p class="src">' + escapeHtml(result.url) + '</p>' +
+        '<p class="ref-text">No se pudo generar: ' + escapeHtml(result.error) + '</p>';
+    }
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  var lastResults = [];
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var urls = textarea.value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean);
+    if (urls.length === 0) return;
+
+    var includeInText = intextToggle.checked;
+    generateBtn.disabled = true;
+    generateBtn.textContent = "Generando…";
+    renderPending(urls);
+    lastResults = [];
+
+    var tasks = urls.map(function (u, i) {
+      return generateReference(u).then(function (result) {
+        lastResults[i] = { result: result, includeInText: includeInText };
+        renderResult(i, result, includeInText);
+      });
+    });
+
+    Promise.all(tasks).finally(function () {
+      generateBtn.disabled = false;
+      generateBtn.textContent = "Generar referencias";
+    });
+  });
+
+  copyAllBtn.addEventListener("click", function () {
+    var lines = lastResults
+      .filter(function (r) { return r && r.result.ok; })
+      .map(function (r) {
+        return r.result.reference + (r.includeInText ? "  " + r.result.inText : "");
+      });
+    if (lines.length === 0) return;
+    copyText(lines.join("\n\n"), copyAllBtn);
+  });
+})();
+</script>
 </body>
 </html>
