@@ -346,9 +346,10 @@ https://otrositio.com/pagina"></textarea>
       <p class="note">
         La página descarga cada URL a través de un proxy público para evitar
         restricciones CORS del navegador y lee sus metadatos (autor, título,
-        sitio, fecha). Algunos sitios bloquean este tipo de acceso o no
-        publican metadatos completos; en esos casos revisa y completa la
-        referencia manualmente.
+        sitio, fecha). Funciona con páginas web y también con archivos PDF
+        (lee su metadata interna con pdf.js). Algunos sitios bloquean este
+        tipo de acceso o no publican metadatos completos; en esos casos
+        revisa y completa la referencia manualmente.
       </p>
     </form>
 
@@ -406,8 +407,8 @@ https://otrositio.com/pagina"></textarea>
       <article class="card">
         <p class="cat-no">index.html</p>
         <h3>Esta página</h3>
-        <p>Reimplementa extractor.py y formatter.py en JavaScript para
-        generar referencias directamente en el navegador.</p>
+        <p>Reimplementa extractor.py y formatter.py en JavaScript y usa
+        pdf.js para leer metadatos de páginas web y de archivos PDF.</p>
         <span class="punch" aria-hidden="true"></span>
       </article>
     </div>
@@ -458,6 +459,12 @@ https://otrositio.com/pagina"></textarea>
 
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+  if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  }
+</script>
 <script>
 (function () {
   "use strict";
@@ -593,21 +600,37 @@ https://otrositio.com/pagina"></textarea>
     return [
       function () { return "https://api.allorigins.win/raw?url=" + encoded; },
       function () { return "https://api.codetabs.com/v1/proxy?quest=" + encoded; },
+      function () { return "https://thingproxy.freeboard.io/fetch/" + url; },
       function () { return "https://corsproxy.io/?url=" + encoded; }
     ];
   }
 
   function fetchWithTimeout(url, ms) {
-    var controller = new AbortController();
-    var timer = setTimeout(function () { controller.abort(); }, ms);
-    return fetch(url, { signal: controller.signal }).finally(function () { clearTimeout(timer); });
+    var signal = (typeof AbortSignal !== "undefined" && AbortSignal.timeout)
+      ? AbortSignal.timeout(ms)
+      : undefined;
+    return fetch(url, signal ? { signal: signal } : {});
+  }
+
+  function looksLikeHtml(text) {
+    return /<html[\s>]/i.test(text) || /<!doctype html/i.test(text) || /<head[\s>]/i.test(text) || /<body[\s>]/i.test(text);
+  }
+
+  function looksLikePdfUrl(url) {
+    return /\.pdf(\?|#|$)/i.test(url);
+  }
+
+  function looksLikePdfText(text) {
+    return text.slice(0, 5) === "%PDF-";
   }
 
   function fetchHtml(url) {
     var builders = proxyBuilders(url);
+    var lastError = null;
     var attempt = function (index) {
       if (index >= builders.length) {
-        return Promise.reject(new Error("No se pudo descargar la página (proxies agotados)."));
+        var suffix = lastError ? " (" + lastError + ")" : "";
+        return Promise.reject(new Error("No se pudo descargar la página tras probar varios proxies" + suffix + "."));
       }
       return fetchWithTimeout(builders[index](), 15000)
         .then(function (res) {
@@ -615,19 +638,122 @@ https://otrositio.com/pagina"></textarea>
           return res.text();
         })
         .then(function (text) {
-          if (!text || text.length < 20) throw new Error("Respuesta vacía");
+          if (!text || text.length < 20) throw new Error("respuesta vacía");
+          if (looksLikePdfText(text)) {
+            throw { pdf: true };
+          }
+          if (!looksLikeHtml(text)) throw new Error("la respuesta no parece HTML");
           return text;
         })
-        .catch(function () {
+        .catch(function (err) {
+          if (err && err.pdf) {
+            return Promise.reject(err);
+          }
+          lastError = (err && err.message) || "error desconocido";
           return attempt(index + 1);
         });
     };
     return attempt(0);
   }
 
+  function fetchBinary(url) {
+    var builders = proxyBuilders(url);
+    var lastError = null;
+    var attempt = function (index) {
+      if (index >= builders.length) {
+        var suffix = lastError ? " (" + lastError + ")" : "";
+        return Promise.reject(new Error("no se pudo descargar el archivo tras probar varios proxies" + suffix + "."));
+      }
+      return fetchWithTimeout(builders[index](), 25000)
+        .then(function (res) {
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          return res.arrayBuffer();
+        })
+        .then(function (buffer) {
+          if (!buffer || buffer.byteLength < 100) throw new Error("archivo vacío o incompleto");
+          return buffer;
+        })
+        .catch(function (err) {
+          lastError = (err && err.message) || "error desconocido";
+          return attempt(index + 1);
+        });
+    };
+    return attempt(0);
+  }
+
+  function siteNameFromUrl(url) {
+    try {
+      var hostname = new URL(url).hostname.replace(/^www\./, "");
+      return hostname || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function filenameToTitle(url) {
+    try {
+      var pathname = new URL(url).pathname;
+      var filename = decodeURIComponent(pathname.split("/").pop() || "");
+      filename = filename.replace(/\.pdf$/i, "").replace(/[-_]+/g, " ").trim();
+      return filename || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function parsePdfDate(raw) {
+    if (!raw) return null;
+    var m = String(raw).match(/D:(\d{4})(\d{2})?(\d{2})?/);
+    if (!m) return null;
+    var year = m[1];
+    var month = m[2] || "01";
+    var day = m[3] || "01";
+    return year + "-" + month + "-" + day;
+  }
+
+  function processPdf(url) {
+    if (!window.pdfjsLib) {
+      return Promise.resolve({
+        ok: false,
+        url: url,
+        error: "no se pudo cargar el lector de PDF (pdf.js). Revisa tu conexión e inténtalo de nuevo."
+      });
+    }
+    return fetchBinary(url).then(function (buffer) {
+      return pdfjsLib.getDocument({ data: buffer }).promise;
+    }).then(function (pdfDoc) {
+      return pdfDoc.getMetadata().catch(function () { return { info: {} }; });
+    }).then(function (metaResult) {
+      var info = (metaResult && metaResult.info) || {};
+      var meta = {
+        url: url,
+        title: (info.Title && String(info.Title).trim()) || filenameToTitle(url) || "Sin título",
+        author: (info.Author && String(info.Author).trim()) || null,
+        site_name: siteNameFromUrl(url),
+        published_date: parsePdfDate(info.CreationDate) || parsePdfDate(info.ModDate)
+      };
+      return {
+        ok: true,
+        url: url,
+        reference: buildReference(meta),
+        inText: buildInTextCitation(meta)
+      };
+    }).catch(function (err) {
+      return {
+        ok: false,
+        url: url,
+        error: "no se pudo leer este PDF: " + ((err && err.message) || "error desconocido")
+      };
+    });
+  }
+
   function generateReference(rawUrl) {
     var url = normalizeUrl(rawUrl);
     if (!url) return Promise.resolve({ ok: false, url: rawUrl, error: "URL vacía." });
+
+    if (looksLikePdfUrl(url)) {
+      return processPdf(url);
+    }
 
     return fetchHtml(url).then(function (html) {
       var doc = new DOMParser().parseFromString(html, "text/html");
@@ -645,7 +771,10 @@ https://otrositio.com/pagina"></textarea>
         inText: buildInTextCitation(meta)
       };
     }).catch(function (err) {
-      return { ok: false, url: url, error: (err && err.message) || "No se pudo procesar esta URL." };
+      if (err && err.pdf) {
+        return processPdf(url);
+      }
+      return { ok: false, url: url, error: (err && err.message) || "no se pudo procesar esta URL." };
     });
   }
 
