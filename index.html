@@ -194,6 +194,59 @@
     padding-top: 12px;
   }
 
+  /* ---------- mode tabs + AI controls ---------- */
+  .mode-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .mode-tab {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    background: #fbf7ea;
+    border: 1px solid var(--paper-line);
+    border-radius: 2px;
+    padding: 7px 14px;
+    cursor: pointer;
+    color: var(--ink-soft);
+  }
+  .mode-tab.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+  .ai-controls {
+    display: none;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--paper-line);
+  }
+  .ai-controls.show { display: flex; }
+  .ai-field { display: flex; flex-direction: column; gap: 6px; }
+  .ai-field.grow { flex: 1; min-width: 220px; }
+  .ai-field label {
+    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft); margin: 0;
+  }
+  .ai-field input[type="password"], .ai-field select {
+    font-family: 'IBM Plex Mono', monospace;
+    background: #fbf7ea;
+    border: 1px solid var(--paper-line);
+    border-radius: 2px;
+    padding: 8px 10px;
+    font-size: 13px;
+    color: var(--ink);
+  }
+
+  .status-text { font-size: 12px; color: var(--ink-soft); }
+
+  .ai-badge {
+    display: inline-block;
+    font-size: 9.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--teal);
+    border: 1px solid var(--teal);
+    border-radius: 3px;
+    padding: 1px 6px;
+    margin-bottom: 8px;
+  }
+
   /* ---------- results ---------- */
   #results { display: flex; flex-direction: column; gap: 14px; margin-top: 22px; }
 
@@ -348,29 +401,63 @@
     </div>
 
     <form class="slip" id="ref-form">
+      <div class="mode-tabs" role="tablist">
+        <button type="button" class="mode-tab active" id="tab-extractive" data-mode="extractive" role="tab" aria-selected="true">Extractivo (local)</button>
+        <button type="button" class="mode-tab" id="tab-ai" data-mode="ai" role="tab" aria-selected="false">Con IA (tu clave)</button>
+      </div>
+
       <label for="urls">URLs (una por línea)</label>
       <textarea id="urls" placeholder="https://ejemplo.com/articulo
 https://otrositio.com/pagina"></textarea>
+
+      <div class="ai-controls" id="ai-controls">
+        <div class="ai-field grow">
+          <label for="ai-key-input">Tu clave de API de Anthropic</label>
+          <input type="password" id="ai-key-input" placeholder="sk-ant-...">
+        </div>
+        <div class="ai-field">
+          <label for="ai-model-select">Modelo</label>
+          <select id="ai-model-select">
+            <option value="claude-sonnet-5" selected>Claude Sonnet 5 (mejor calidad)</option>
+            <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (más rápido)</option>
+          </select>
+        </div>
+      </div>
 
       <div class="row-below">
         <label class="checkbox-line">
           <input type="checkbox" id="intext-toggle">
           Incluir cita en texto (Autor, Año)
         </label>
-        <div style="display:flex; gap:10px;">
+        <div style="display:flex; gap:10px; align-items:center;">
+          <span class="status-text" id="status-text"></span>
           <button type="button" class="btn small" id="copy-all-btn">Copiar todo</button>
           <button type="submit" class="btn primary" id="generate-btn">Generar referencias</button>
         </div>
       </div>
 
-      <p class="note">
+      <p class="note" id="note-extractive">
         La página descarga cada URL a través de un proxy público para evitar
         restricciones CORS del navegador y lee sus metadatos (autor, título,
-        sitio, fecha). Funciona con páginas web y también con archivos PDF
-        (lee su metadata interna con pdf.js). Algunos sitios bloquean este
-        tipo de acceso o no publican metadatos completos; si eso pasa con un
-        PDF, la ficha con el error te dejará subirlo directamente para
-        generar la referencia sin depender de ningún proxy.
+        sitio, fecha), que luego se formatean a APA 7 con reglas fijas.
+        Funciona con páginas web y también con archivos PDF (lee su
+        metadata interna con pdf.js). Algunos sitios bloquean este tipo de
+        acceso o no publican metadatos completos; si eso pasa con un PDF,
+        la ficha con el error te dejará subirlo directamente para generar
+        la referencia sin depender de ningún proxy.
+      </p>
+      <p class="note" id="note-ai" style="display:none;">
+        En este modo, la página descarga cada URL igual que en el modo
+        local (mismos proxies, misma lectura de PDFs), pero en vez de
+        aplicar reglas fijas, le envía los metadatos encontrados — y un
+        fragmento del contenido de la página como contexto adicional —
+        directo desde tu navegador a la API de Anthropic, usando tu propia
+        clave, para que arme la referencia APA 7 final. Esto ayuda con
+        casos ambiguos: autores organizacionales, fechas incompletas o
+        metadatos faltantes que las reglas fijas no siempre resuelven
+        bien. Tu clave no pasa por ningún servidor de apa7ref ni se
+        guarda en ningún lado; se pierde al recargar la página. El uso
+        tiene el costo que aplique tu cuenta de Anthropic.
       </p>
     </form>
 
@@ -428,8 +515,9 @@ https://otrositio.com/pagina"></textarea>
       <article class="card">
         <p class="cat-no">index.html</p>
         <h3>Esta página</h3>
-        <p>Reimplementa extractor.py y formatter.py en JavaScript y usa
-        pdf.js para leer metadatos de páginas web y de archivos PDF.</p>
+        <p>Reimplementa extractor.py y formatter.py en JavaScript, usa
+        pdf.js para leer metadatos de PDFs, y puede pedirle a Claude (con
+        tu propia clave) que interprete casos ambiguos.</p>
         <span class="punch" aria-hidden="true"></span>
       </article>
     </div>
@@ -463,7 +551,7 @@ https://otrositio.com/pagina"></textarea>
     <table class="stamps">
       <tr>
         <td class="k">Repositorio</td>
-        <td class="v"><a href="https://github.com/efrabuilder/apa7-url-ref">github.com/tu-usuario/apa7ref</a></td>
+        <td class="v"><a href="https://github.com/efrabuilder/apa7-url-ref">github.com/efrabuilder/apa7-url-ref</a></td>
       </tr>
       <tr>
         <td class="k">Licencia</td>
@@ -545,6 +633,13 @@ https://otrositio.com/pagina"></textarea>
     return getMeta(doc, META_DATE);
   }
 
+  function extractExcerpt(doc) {
+    if (!doc.body) return "";
+    var text = doc.body.textContent || "";
+    text = text.replace(/\s+/g, " ").trim();
+    return text.slice(0, 3000);
+  }
+
   function parseDate(raw) {
     if (!raw) return null;
     var trimmed = raw.trim();
@@ -608,6 +703,93 @@ https://otrositio.com/pagina"></textarea>
     var lastName = author.split(",")[0];
     return "(" + lastName + ", " + year + ")";
   }
+
+  /* ---------------- AI-assisted formatting ---------------- */
+
+  function buildAIPrompt(meta) {
+    return (
+      "Con base en la siguiente información extraída de una URL, genera la " +
+      "referencia bibliográfica en formato APA 7 (7ª edición) y la cita en " +
+      "texto correspondiente (Autor, Año), siguiendo las reglas oficiales de " +
+      "APA 7: distingue autores individuales de autores organizacionales, usa " +
+      "apellido e iniciales para personas, usa \"s.f.\" cuando falte la fecha, " +
+      "y sigue el orden Autor. (Año). Título. Sitio. URL — omitiendo el sitio " +
+      "si es igual al nombre del autor. Si los metadatos están incompletos, " +
+      "usa el fragmento de contenido para inferir lo que falta de forma " +
+      "razonable; si algo simplemente no se puede determinar, sigue las " +
+      "reglas de APA 7 para ese caso (por ejemplo, sin autor: empieza por el " +
+      "título).\n\n" +
+      "Responde ÚNICAMENTE con un objeto JSON, sin texto adicional ni bloques " +
+      "de código, con exactamente estas claves:\n" +
+      '{"reference": "<referencia completa en APA 7>", "inText": "<cita en texto, ej. (Apellido, 2024)>"}' +
+      "\n\nURL: " + meta.url +
+      "\nAutor encontrado en metadatos: " + (meta.author || "no encontrado") +
+      "\nTítulo encontrado en metadatos: " + (meta.title || "no encontrado") +
+      "\nSitio encontrado en metadatos: " + (meta.site_name || "no encontrado") +
+      "\nFecha de publicación encontrada en metadatos: " + (meta.published_date || "no encontrada") +
+      "\n\nFragmento del contenido de la página (contexto adicional, puede estar vacío):\n" +
+      (meta.excerpt || "(sin fragmento disponible)")
+    );
+  }
+
+  function callClaude(prompt, apiKey, model) {
+    return fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify({
+        model: model,
+        max_tokens: 500,
+        messages: [{ role: "user", content: prompt }]
+      })
+    }).then(function (res) {
+      if (!res.ok) {
+        return res.json().catch(function () { return null; }).then(function (body) {
+          var detail = body && body.error && body.error.message ? body.error.message : ("HTTP " + res.status);
+          throw new Error(detail);
+        });
+      }
+      return res.json();
+    }).then(function (data) {
+      var text = (data.content || [])
+        .filter(function (b) { return b.type === "text"; })
+        .map(function (b) { return b.text; })
+        .join("\n")
+        .trim();
+      if (!text) throw new Error("La API no devolvió texto.");
+      return text;
+    });
+  }
+
+  function parseAIReferenceResponse(raw, meta) {
+    var cleaned = raw.trim().replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/, "").trim();
+    var jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        var parsed = JSON.parse(jsonMatch[0]);
+        if (parsed && parsed.reference) {
+          return { reference: String(parsed.reference).trim(), inText: String(parsed.inText || "").trim() || buildInTextCitation(meta) };
+        }
+      } catch (e) {
+        // sigue al fallback de abajo
+      }
+    }
+    // Si el modelo no devolvió JSON válido, usa el texto tal cual como referencia
+    // y arma una cita en texto local a partir de los metadatos ya conocidos.
+    return { reference: cleaned, inText: buildInTextCitation(meta) };
+  }
+
+  function generateReferenceWithAI(meta, apiKey, model) {
+    return callClaude(buildAIPrompt(meta), apiKey, model).then(function (raw) {
+      return parseAIReferenceResponse(raw, meta);
+    });
+  }
+
+  /* ---------------- fetching (proxies) ---------------- */
 
   function normalizeUrl(raw) {
     var url = raw.trim();
@@ -733,26 +915,51 @@ https://otrositio.com/pagina"></textarea>
 
   function pdfMetaFromBuffer(url, buffer) {
     return pdfjsLib.getDocument({ data: buffer }).promise.then(function (pdfDoc) {
-      return pdfDoc.getMetadata().catch(function () { return { info: {} }; });
-    }).then(function (metaResult) {
+      var metadataPromise = pdfDoc.getMetadata().catch(function () { return { info: {} }; });
+      var excerptPromise = pdfDoc.getPage(1)
+        .then(function (page) { return page.getTextContent(); })
+        .then(function (content) {
+          return content.items.map(function (item) { return item.str; }).join(" ").replace(/\s+/g, " ").trim().slice(0, 3000);
+        })
+        .catch(function () { return ""; });
+      return Promise.all([metadataPromise, excerptPromise]);
+    }).then(function (results) {
+      var metaResult = results[0];
+      var excerpt = results[1];
       var info = (metaResult && metaResult.info) || {};
       var meta = {
         url: url,
         title: (info.Title && String(info.Title).trim()) || filenameToTitle(url) || "Sin título",
         author: (info.Author && String(info.Author).trim()) || null,
         site_name: siteNameFromUrl(url),
-        published_date: parsePdfDate(info.CreationDate) || parsePdfDate(info.ModDate)
+        published_date: parsePdfDate(info.CreationDate) || parsePdfDate(info.ModDate),
+        excerpt: excerpt
       };
-      return {
-        ok: true,
-        url: url,
-        reference: buildReference(meta),
-        inText: buildInTextCitation(meta)
-      };
+      return meta;
     });
   }
 
-  function processPdf(url) {
+  function formatMetaLocally(meta) {
+    return {
+      ok: true,
+      url: meta.url,
+      reference: buildReference(meta),
+      inText: buildInTextCitation(meta)
+    };
+  }
+
+  function formatMetaWithAI(meta, apiKey, model) {
+    return generateReferenceWithAI(meta, apiKey, model).then(function (ai) {
+      return { ok: true, url: meta.url, reference: ai.reference, inText: ai.inText, aiGenerated: true };
+    });
+  }
+
+  function finalizeMeta(meta, run) {
+    if (run.mode === "ai") return formatMetaWithAI(meta, run.apiKey, run.model);
+    return Promise.resolve(formatMetaLocally(meta));
+  }
+
+  function processPdf(url, run) {
     if (!window.pdfjsLib) {
       return Promise.resolve({
         ok: false,
@@ -762,6 +969,7 @@ https://otrositio.com/pagina"></textarea>
     }
     return fetchBinary(url)
       .then(function (buffer) { return pdfMetaFromBuffer(url, buffer); })
+      .then(function (meta) { return finalizeMeta(meta, run); })
       .catch(function (err) {
         return {
           ok: false,
@@ -771,11 +979,12 @@ https://otrositio.com/pagina"></textarea>
       });
   }
 
-  function processPdfFromFile(url, file) {
+  function processPdfFromFile(url, file, run) {
     return new Promise(function (resolve) {
       var reader = new FileReader();
       reader.onload = function () {
         pdfMetaFromBuffer(url, reader.result)
+          .then(function (meta) { return finalizeMeta(meta, run); })
           .then(resolve)
           .catch(function (err) {
             resolve({
@@ -792,12 +1001,12 @@ https://otrositio.com/pagina"></textarea>
     });
   }
 
-  function generateReference(rawUrl) {
+  function generateReference(rawUrl, run) {
     var url = normalizeUrl(rawUrl);
     if (!url) return Promise.resolve({ ok: false, url: rawUrl, error: "URL vacía." });
 
     if (looksLikePdfUrl(url)) {
-      return processPdf(url);
+      return processPdf(url, run);
     }
 
     return fetchHtml(url).then(function (html) {
@@ -807,17 +1016,16 @@ https://otrositio.com/pagina"></textarea>
         title: extractTitle(doc),
         author: extractAuthor(doc),
         site_name: extractSiteName(doc, url),
-        published_date: extractPublishedDate(doc)
+        published_date: extractPublishedDate(doc),
+        excerpt: extractExcerpt(doc)
       };
-      return {
-        ok: true,
-        url: url,
-        reference: buildReference(meta),
-        inText: buildInTextCitation(meta)
-      };
+      return finalizeMeta(meta, run);
     }).catch(function (err) {
       if (err && err.pdf) {
-        return processPdf(url);
+        return processPdf(url, run);
+      }
+      if (err instanceof Error && /^(La API no devolvió|HTTP \d|Ingresa)/.test(err.message || "")) {
+        return { ok: false, url: url, error: err.message };
       }
       return { ok: false, url: url, error: (err && err.message) || "no se pudo procesar esta URL." };
     });
@@ -854,6 +1062,33 @@ https://otrositio.com/pagina"></textarea>
   var generateBtn = document.getElementById("generate-btn");
   var copyAllBtn = document.getElementById("copy-all-btn");
   var intextToggle = document.getElementById("intext-toggle");
+  var statusText = document.getElementById("status-text");
+
+  var tabExtractive = document.getElementById("tab-extractive");
+  var tabAi = document.getElementById("tab-ai");
+  var aiControls = document.getElementById("ai-controls");
+  var noteExtractive = document.getElementById("note-extractive");
+  var noteAi = document.getElementById("note-ai");
+  var aiKeyInput = document.getElementById("ai-key-input");
+  var aiModelSelect = document.getElementById("ai-model-select");
+
+  var currentMode = "extractive";
+  var lastRun = { mode: "extractive", apiKey: "", model: "" };
+
+  function setMode(mode) {
+    currentMode = mode;
+    var isAi = mode === "ai";
+    tabExtractive.classList.toggle("active", !isAi);
+    tabAi.classList.toggle("active", isAi);
+    tabExtractive.setAttribute("aria-selected", String(!isAi));
+    tabAi.setAttribute("aria-selected", String(isAi));
+    aiControls.classList.toggle("show", isAi);
+    noteExtractive.style.display = isAi ? "none" : "block";
+    noteAi.style.display = isAi ? "block" : "none";
+    statusText.textContent = "";
+  }
+  tabExtractive.addEventListener("click", function () { setMode("extractive"); });
+  tabAi.addEventListener("click", function () { setMode("ai"); });
 
   function renderPending(urls) {
     results.innerHTML = "";
@@ -863,7 +1098,7 @@ https://otrositio.com/pagina"></textarea>
       card.id = "result-" + i;
       card.innerHTML =
         '<p class="src">' + u + '</p>' +
-        '<p class="ref-text">Generando referencia…</p>';
+        '<p class="ref-text">' + (currentMode === "ai" ? "Generando referencia con IA…" : "Generando referencia…") + '</p>';
       results.appendChild(card);
     });
   }
@@ -873,9 +1108,11 @@ https://otrositio.com/pagina"></textarea>
     if (!card) return;
     if (result.ok) {
       card.className = "result-card";
+      var badge = result.aiGenerated ? '<span class="ai-badge">Generado con IA</span><br>' : "";
       var intextHtml = includeInText ? '<p class="intext">' + escapeHtml(result.inText) + '</p>' : "";
       card.innerHTML =
         '<p class="src">' + escapeHtml(result.url) + '</p>' +
+        badge +
         '<p class="ref-text">' + escapeHtml(result.reference) + '</p>' +
         intextHtml +
         '<div class="result-actions"><button type="button" class="btn small copy-one">Copiar</button></div>';
@@ -907,8 +1144,8 @@ https://otrositio.com/pagina"></textarea>
           var file = e.target.files && e.target.files[0];
           if (!file) return;
           card.className = "result-card pending";
-          card.querySelector(".ref-text").textContent = "Leyendo PDF subido…";
-          processPdfFromFile(result.url, file).then(function (uploadResult) {
+          card.querySelector(".ref-text").textContent = lastRun.mode === "ai" ? "Leyendo PDF subido y generando con IA…" : "Leyendo PDF subido…";
+          processPdfFromFile(result.url, file, lastRun).then(function (uploadResult) {
             lastResults[index] = { result: uploadResult, includeInText: includeInText };
             renderResult(index, uploadResult, includeInText);
           });
@@ -931,14 +1168,21 @@ https://otrositio.com/pagina"></textarea>
     var urls = textarea.value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean);
     if (urls.length === 0) return;
 
+    if (currentMode === "ai" && !aiKeyInput.value.trim()) {
+      statusText.textContent = "Ingresa tu clave de API de Anthropic primero.";
+      return;
+    }
+
     var includeInText = intextToggle.checked;
+    lastRun = { mode: currentMode, apiKey: aiKeyInput.value.trim(), model: aiModelSelect.value };
+    statusText.textContent = "";
     generateBtn.disabled = true;
     generateBtn.textContent = "Generando…";
     renderPending(urls);
     lastResults = [];
 
     var tasks = urls.map(function (u, i) {
-      return generateReference(u).then(function (result) {
+      return generateReference(u, lastRun).then(function (result) {
         lastResults[i] = { result: result, includeInText: includeInText };
         renderResult(i, result, includeInText);
       });
