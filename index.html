@@ -247,6 +247,34 @@
     margin-bottom: 8px;
   }
 
+  /* ---------- manual form ---------- */
+  .manual-form {
+    display: none;
+    gap: 14px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--paper-line);
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .manual-form.show { display: grid; }
+  .manual-field { display: flex; flex-direction: column; gap: 6px; }
+  .manual-field.span-2 { grid-column: 1 / -1; }
+  .manual-field label {
+    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft); margin: 0;
+  }
+  .manual-field input {
+    font-family: 'IBM Plex Mono', monospace;
+    background: #fbf7ea;
+    border: 1px solid var(--paper-line);
+    border-radius: 2px;
+    padding: 8px 10px;
+    font-size: 13px;
+    color: var(--ink);
+  }
+  @media (max-width: 560px) {
+    .manual-form { grid-template-columns: 1fr; }
+  }
+
   /* ---------- results ---------- */
   #results { display: flex; flex-direction: column; gap: 14px; margin-top: 22px; }
 
@@ -404,9 +432,10 @@
       <div class="mode-tabs" role="tablist">
         <button type="button" class="mode-tab active" id="tab-extractive" data-mode="extractive" role="tab" aria-selected="true">Extractivo (local)</button>
         <button type="button" class="mode-tab" id="tab-ai" data-mode="ai" role="tab" aria-selected="false">Con IA (tu clave)</button>
+        <button type="button" class="mode-tab" id="tab-manual" data-mode="manual" role="tab" aria-selected="false">Manual</button>
       </div>
 
-      <label for="urls">URLs (una por línea)</label>
+      <label for="urls" id="urls-label">URLs (una por línea)</label>
       <textarea id="urls" placeholder="https://ejemplo.com/articulo
 https://otrositio.com/pagina"></textarea>
 
@@ -421,6 +450,29 @@ https://otrositio.com/pagina"></textarea>
             <option value="claude-sonnet-5" selected>Claude Sonnet 5 (mejor calidad)</option>
             <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (más rápido)</option>
           </select>
+        </div>
+      </div>
+
+      <div class="manual-form" id="manual-form">
+        <div class="manual-field">
+          <label for="manual-author">Autor (persona u organización)</label>
+          <input type="text" id="manual-author" placeholder="Rojas Artavia, E. S.">
+        </div>
+        <div class="manual-field">
+          <label for="manual-date">Fecha (año, o AAAA-MM-DD)</label>
+          <input type="text" id="manual-date" placeholder="2026 o 2026-03-15">
+        </div>
+        <div class="manual-field span-2">
+          <label for="manual-title">Título</label>
+          <input type="text" id="manual-title" placeholder="Título del artículo o página">
+        </div>
+        <div class="manual-field">
+          <label for="manual-site">Nombre del sitio (opcional)</label>
+          <input type="text" id="manual-site" placeholder="Nombre del sitio o editorial">
+        </div>
+        <div class="manual-field">
+          <label for="manual-url">URL (opcional)</label>
+          <input type="text" id="manual-url" placeholder="https://ejemplo.com/articulo">
         </div>
       </div>
 
@@ -442,9 +494,14 @@ https://otrositio.com/pagina"></textarea>
         sitio, fecha), que luego se formatean a APA 7 con reglas fijas.
         Funciona con páginas web y también con archivos PDF (lee su
         metadata interna con pdf.js). Algunos sitios bloquean este tipo de
-        acceso o no publican metadatos completos; si eso pasa con un PDF,
-        la ficha con el error te dejará subirlo directamente para generar
-        la referencia sin depender de ningún proxy.
+        acceso o no publican metadatos completos (por ejemplo, YouTube
+        muestra con frecuencia una pantalla de aviso de cookies en vez de
+        la página real, y publica el autor y la fecha con microdatos que
+        el modo extractivo apenas empieza a soportar); si eso pasa con un
+        PDF, la ficha con el error te dejará subirlo directamente para
+        generar la referencia sin depender de ningún proxy. Si un sitio
+        sigue sin funcionar, el modo Manual te deja escribir los datos
+        directamente.
       </p>
       <p class="note" id="note-ai" style="display:none;">
         En este modo, la página descarga cada URL igual que en el modo
@@ -458,6 +515,14 @@ https://otrositio.com/pagina"></textarea>
         bien. Tu clave no pasa por ningún servidor de apa7ref ni se
         guarda en ningún lado; se pierde al recargar la página. El uso
         tiene el costo que aplique tu cuenta de Anthropic.
+      </p>
+      <p class="note" id="note-manual" style="display:none;">
+        Escribe los datos de la fuente a mano y la página arma la
+        referencia APA 7 localmente, con las mismas reglas de formato
+        que el modo extractivo (sin descargar nada ni usar ningún
+        proxy). Útil para fuentes que los otros modos no logran leer,
+        como videos de YouTube, contenido detrás de un muro de pago, o
+        páginas que bloquean el acceso automatizado.
       </p>
     </form>
 
@@ -585,6 +650,12 @@ https://otrositio.com/pagina"></textarea>
   var META_SITE = ["og:site_name","application-name"];
   var META_DATE = ["article:published_time","og:published_time","citation_publication_date","citation_date","dc.date","date","publish-date","parsely-pub-date"];
 
+  // Algunos sitios (YouTube entre ellos) publican sus metadatos con
+  // microdatos schema.org (itemprop) en vez de las etiquetas meta
+  // estándar name="" / property="". Se agregan aquí como alternativa.
+  var ITEMPROP_AUTHOR = ["author", "name"];
+  var ITEMPROP_DATE = ["datePublished", "uploadDate"];
+
   var ORG_MARKERS = /\b(inc|llc|ltd|corp|company|co\.|team|staff|editorial|redacci[oó]n|news|noticias|university|universidad|department|departamento|agency|agencia)\b/i;
 
   function getMeta(doc, names) {
@@ -598,12 +669,25 @@ https://otrositio.com/pagina"></textarea>
     return null;
   }
 
+  function getItemprop(doc, names) {
+    for (var i = 0; i < names.length; i++) {
+      var el = doc.querySelector('[itemprop="' + names[i] + '"]');
+      if (el) {
+        var content = (el.getAttribute("content") || el.textContent || "").trim();
+        if (content) return content;
+      }
+    }
+    return null;
+  }
+
   function extractAuthor(doc) {
     var author = getMeta(doc, META_AUTHOR);
     if (author) {
       if (/^https?:\/\//i.test(author)) return null;
       return author;
     }
+    var itemAuthor = getItemprop(doc, ITEMPROP_AUTHOR);
+    if (itemAuthor && !/^https?:\/\//i.test(itemAuthor)) return itemAuthor;
     var tag = doc.querySelector('[rel="author"]') || doc.querySelector('[class*="author" i]');
     if (tag && tag.textContent && tag.textContent.trim()) return tag.textContent.trim();
     return null;
@@ -630,7 +714,9 @@ https://otrositio.com/pagina"></textarea>
   }
 
   function extractPublishedDate(doc) {
-    return getMeta(doc, META_DATE);
+    var date = getMeta(doc, META_DATE);
+    if (date) return date;
+    return getItemprop(doc, ITEMPROP_DATE);
   }
 
   function extractExcerpt(doc) {
@@ -692,7 +778,8 @@ https://otrositio.com/pagina"></textarea>
       sitePart = "";
     }
 
-    var reference = authorPart + title + " " + sitePart + meta.url;
+    var urlPart = meta.url ? meta.url : "";
+    var reference = authorPart + title + " " + sitePart + urlPart;
     return reference.replace(/\s{2,}/g, " ").trim();
   }
 
@@ -1031,6 +1118,25 @@ https://otrositio.com/pagina"></textarea>
     });
   }
 
+  function generateManualReference(fields) {
+    var meta = {
+      url: fields.url || "",
+      title: fields.title || null,
+      author: fields.author || null,
+      site_name: fields.site || null,
+      published_date: fields.date || null
+    };
+    if (!meta.title) {
+      return { ok: false, url: meta.url || "(entrada manual)", error: "el título es obligatorio en el modo manual." };
+    }
+    return {
+      ok: true,
+      url: meta.url || "(entrada manual)",
+      reference: buildReference(meta),
+      inText: buildInTextCitation(meta)
+    };
+  }
+
   function copyText(text, btn) {
     var done = function () {
       var original = btn.textContent;
@@ -1058,6 +1164,7 @@ https://otrositio.com/pagina"></textarea>
 
   var form = document.getElementById("ref-form");
   var textarea = document.getElementById("urls");
+  var urlsLabel = document.getElementById("urls-label");
   var results = document.getElementById("results");
   var generateBtn = document.getElementById("generate-btn");
   var copyAllBtn = document.getElementById("copy-all-btn");
@@ -1066,11 +1173,20 @@ https://otrositio.com/pagina"></textarea>
 
   var tabExtractive = document.getElementById("tab-extractive");
   var tabAi = document.getElementById("tab-ai");
+  var tabManual = document.getElementById("tab-manual");
   var aiControls = document.getElementById("ai-controls");
+  var manualForm = document.getElementById("manual-form");
   var noteExtractive = document.getElementById("note-extractive");
   var noteAi = document.getElementById("note-ai");
+  var noteManual = document.getElementById("note-manual");
   var aiKeyInput = document.getElementById("ai-key-input");
   var aiModelSelect = document.getElementById("ai-model-select");
+
+  var manualAuthor = document.getElementById("manual-author");
+  var manualDate = document.getElementById("manual-date");
+  var manualTitle = document.getElementById("manual-title");
+  var manualSite = document.getElementById("manual-site");
+  var manualUrl = document.getElementById("manual-url");
 
   var currentMode = "extractive";
   var lastRun = { mode: "extractive", apiKey: "", model: "" };
@@ -1078,17 +1194,26 @@ https://otrositio.com/pagina"></textarea>
   function setMode(mode) {
     currentMode = mode;
     var isAi = mode === "ai";
-    tabExtractive.classList.toggle("active", !isAi);
+    var isManual = mode === "manual";
+    tabExtractive.classList.toggle("active", !isAi && !isManual);
     tabAi.classList.toggle("active", isAi);
-    tabExtractive.setAttribute("aria-selected", String(!isAi));
+    tabManual.classList.toggle("active", isManual);
+    tabExtractive.setAttribute("aria-selected", String(!isAi && !isManual));
     tabAi.setAttribute("aria-selected", String(isAi));
+    tabManual.setAttribute("aria-selected", String(isManual));
     aiControls.classList.toggle("show", isAi);
-    noteExtractive.style.display = isAi ? "none" : "block";
+    manualForm.classList.toggle("show", isManual);
+    textarea.style.display = isManual ? "none" : "block";
+    urlsLabel.style.display = isManual ? "none" : "block";
+    noteExtractive.style.display = (!isAi && !isManual) ? "block" : "none";
     noteAi.style.display = isAi ? "block" : "none";
+    noteManual.style.display = isManual ? "block" : "none";
+    generateBtn.textContent = isManual ? "Generar referencia" : "Generar referencias";
     statusText.textContent = "";
   }
   tabExtractive.addEventListener("click", function () { setMode("extractive"); });
   tabAi.addEventListener("click", function () { setMode("ai"); });
+  tabManual.addEventListener("click", function () { setMode("manual"); });
 
   function renderPending(urls) {
     results.innerHTML = "";
@@ -1165,6 +1290,29 @@ https://otrositio.com/pagina"></textarea>
 
   form.addEventListener("submit", function (e) {
     e.preventDefault();
+    var includeInText = intextToggle.checked;
+
+    if (currentMode === "manual") {
+      var fields = {
+        author: manualAuthor.value.trim(),
+        date: manualDate.value.trim(),
+        title: manualTitle.value.trim(),
+        site: manualSite.value.trim(),
+        url: manualUrl.value.trim()
+      };
+      lastRun = { mode: "manual", apiKey: "", model: "" };
+      statusText.textContent = "";
+      var result = generateManualReference(fields);
+      results.innerHTML = "";
+      var card = document.createElement("div");
+      card.className = "result-card";
+      card.id = "result-0";
+      results.appendChild(card);
+      lastResults = [{ result: result, includeInText: includeInText }];
+      renderResult(0, result, includeInText);
+      return;
+    }
+
     var urls = textarea.value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean);
     if (urls.length === 0) return;
 
@@ -1173,7 +1321,6 @@ https://otrositio.com/pagina"></textarea>
       return;
     }
 
-    var includeInText = intextToggle.checked;
     lastRun = { mode: currentMode, apiKey: aiKeyInput.value.trim(), model: aiModelSelect.value };
     statusText.textContent = "";
     generateBtn.disabled = true;
