@@ -125,7 +125,11 @@ def fetch_metadata(url: str, timeout: float = 15.0) -> Metadata:
     try:
         response = requests.get(
             url,
-            headers={"User-Agent": USER_AGENT},
+            headers={
+                "User-Agent": USER_AGENT,
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+            },
             timeout=timeout,
         )
         response.raise_for_status()
