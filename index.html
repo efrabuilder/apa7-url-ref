@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>apa7ref — genera referencias APA 7 desde URLs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #e6ddc4;
+    --paper-2: #ddd2ae;
+    --paper-line: #b7a97f;
+    --wood: #5a3f2c;
+    --wood-dark: #47301f;
+    --ink: #241f16;
+    --ink-soft: #635a45;
+    --stamp: #a13a2d;
+    --teal: #1f4f43;
+    --card-shadow: rgba(36, 31, 22, 0.18);
+    --radius-card: 3px;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--wood);
+    background-image:
+      repeating-linear-gradient(90deg, rgba(0,0,0,0.06) 0px, rgba(0,0,0,0.06) 1px, transparent 1px, transparent 64px),
+      linear-gradient(180deg, var(--wood) 0%, var(--wood-dark) 100%);
+    color: var(--ink);
+    font-family: 'IBM Plex Mono', monospace;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--teal); }
+  a:focus-visible, button:focus-visible, textarea:focus-visible, input:focus-visible {
+    outline: 3px solid var(--stamp);
+    outline-offset: 2px;
+  }
+
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 24px 80px; }
+
+  /* ---------- drawer label header ---------- */
+  header { padding: 56px 24px 40px; text-align: center; }
+
+  .tab {
+    display: inline-block;
+    background: var(--paper);
+    border: 1px solid var(--paper-line);
+    border-bottom: none;
+    padding: 6px 22px;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    border-radius: 4px 4px 0 0;
+  }
+
+  .drawer-front {
+    background: var(--paper);
+    border: 1px solid var(--paper-line);
+    border-radius: 2px;
+    padding: 40px 32px 32px;
+    box-shadow: 0 14px 30px var(--card-shadow);
+    position: relative;
+  }
+
+  .call-number { font-size: 12px; color: var(--ink-soft); letter-spacing: 0.08em; margin: 0 0 18px; }
+
+  h1 {
+    font-family: 'Source Serif 4', serif;
+    font-weight: 700;
+    font-size: clamp(34px, 6vw, 56px);
+    margin: 0 0 10px;
+    letter-spacing: -0.01em;
+  }
+
+  .tagline {
+    font-size: 15px;
+    color: var(--ink-soft);
+    max-width: 46ch;
+    margin: 0 auto 6px;
+    line-height: 1.6;
+  }
+
+  .stamp {
+    position: absolute; top: 26px; right: 30px;
+    border: 2px solid var(--stamp); color: var(--stamp);
+    font-size: 11px; letter-spacing: 0.1em; padding: 5px 10px;
+    border-radius: 4px; transform: rotate(6deg); opacity: 0.85;
+  }
+
+  /* ---------- section headings ---------- */
+  .section-head { display: flex; align-items: baseline; gap: 14px; margin: 56px 0 22px; }
+
+  .section-head .num {
+    font-family: 'Source Serif 4', serif; font-size: 13px; color: var(--paper);
+    background: var(--stamp); padding: 3px 9px; border-radius: 2px;
+  }
+
+  .section-head h2 {
+    font-family: 'Source Serif 4', serif; color: var(--paper); font-size: 22px;
+    margin: 0; font-weight: 600;
+  }
+
+  .section-head .rule { flex: 1; height: 1px; background: rgba(230, 221, 196, 0.28); }
+
+  /* ---------- request slip (generator form) ---------- */
+  .slip {
+    background: var(--paper);
+    border: 1px solid var(--paper-line);
+    border-radius: 2px;
+    padding: 26px 28px 24px;
+    box-shadow: 0 10px 24px var(--card-shadow);
+  }
+
+  .slip label {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 8px;
+  }
+
+  .slip textarea {
+    width: 100%;
+    min-height: 96px;
+    resize: vertical;
+    background: #fbf7ea;
+    border: 1px solid var(--paper-line);
+    border-radius: 2px;
+    padding: 12px 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13.5px;
+    color: var(--ink);
+    line-height: 1.6;
+  }
+
+  .slip .row-below {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  .checkbox-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+  }
+
+  .checkbox-line input { accent-color: var(--stamp); width: 15px; height: 15px; }
+
+  .btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: none;
+    padding: 10px 18px;
+    border-radius: 2px;
+    border: 1px solid var(--ink);
+    background: transparent;
+    color: var(--ink);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform 0.15s ease, background 0.15s ease;
+  }
+
+  .btn.primary { background: var(--ink); color: var(--paper); }
+  .btn:hover { transform: translateY(-2px); }
+  .btn:disabled { opacity: 0.5; cursor: default; transform: none; }
+  .btn.small { font-size: 11px; padding: 6px 12px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .btn:hover, .card:hover { transform: none; }
+  }
+
+  .note {
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    margin-top: 14px;
+    line-height: 1.6;
+    border-top: 1px dashed var(--paper-line);
+    padding-top: 12px;
+  }
+
+  /* ---------- mode tabs + AI controls ---------- */
+  .mode-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .mode-tab {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    background: #fbf7ea;
+    border: 1px solid var(--paper-line);
+    border-radius: 2px;
+    padding: 7px 14px;
+    cursor: pointer;
+    color: var(--ink-soft);
+  }
+  .mode-tab.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+  .ai-controls {
+    display: none;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--paper-line);
+  }
+  .ai-controls.show { display: flex; }
+  .ai-field { display: flex; flex-direction: column; gap: 6px; }
+  .ai-field.grow { flex: 1; min-width: 220px; }
+  .ai-field label {
+    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft); margin: 0;
+  }
+  .ai-field input[type="password"], .ai-field select {
+    font-family: 'IBM Plex Mono', monospace;
+    background: #fbf7ea;
+    border: 1px solid var(--paper-line);
+    border-radius: 2px;
+    padding: 8px 10px;
+    font-size: 13px;
+    color: var(--ink);
+  }
+
+  .status-text { font-size: 12px; color: var(--ink-soft); }
+
+  .ai-badge {
+    display: inline-block;
+    font-size: 9.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--teal);
+    border: 1px solid var(--teal);
+    border-radius: 3px;
+    padding: 1px 6px;
+    margin-bottom: 8px;
+  }
+
+  /* ---------- manual form ---------- */
+  .manual-form {
+    display: none;
+    gap: 14px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--paper-line);
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .manual-form.show { display: grid; }
+  .manual-field { display: flex; flex-direction: column; gap: 6px; }
+  .manual-field.span-2 { grid-column: 1 / -1; }
+  .manual-field label {
+    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft); margin: 0;
+  }
+  .manual-field input {
+    font-family: 'IBM Plex Mono', monospace;
+    background: #fbf7ea;
+    border: 1px solid var(--paper-line);
+    border-radius: 2px;
+    padding: 8px 10px;
+    font-size: 13px;
+    color: var(--ink);
+  }
+  @media (max-width: 560px) {
+    .manual-form { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- results ---------- */
+  #results { display: flex; flex-direction: column; gap: 14px; margin-top: 22px; }
+
+  .result-card {
+    background: var(--paper);
+    border: 1px solid var(--paper-line);
+    border-radius: 2px;
+    padding: 16px 18px;
+    box-shadow: 0 6px 14px var(--card-shadow);
+  }
+
+  .result-card .src {
+    font-size: 10.5px;
+    color: var(--ink-soft);
+    word-break: break-all;
+    margin: 0 0 8px;
+  }
+
+  .result-card .ref-text {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--ink);
+    margin: 0 0 6px;
+  }
+
+  .result-card .intext {
+    font-size: 12px;
+    color: var(--teal);
+    margin: 0 0 10px;
+  }
+
+  .result-card.pending .ref-text { color: var(--ink-soft); }
+  .result-card.error .ref-text { color: var(--stamp); }
+
+  .result-actions { display: flex; gap: 8px; }
+
+  .pdf-fallback {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--paper-line);
+  }
+
+  .pdf-fallback-label {
+    display: block;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    margin-bottom: 8px;
+    line-height: 1.5;
+  }
+
+  .pdf-fallback input[type="file"] {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--ink);
+  }
+
+  /* ---------- card catalog grid (project modules) ---------- */
+  .catalog { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 20px; }
+
+  .card {
+    background: var(--paper);
+    border: 1px solid var(--paper-line);
+    border-radius: var(--radius-card);
+    padding: 18px 18px 30px;
+    position: relative;
+    box-shadow: 0 6px 14px var(--card-shadow);
+    transition: transform 0.15s ease;
+  }
+
+  .card:hover { transform: translateY(-3px); }
+  .card .cat-no { font-size: 10px; color: var(--ink-soft); letter-spacing: 0.08em; margin: 0 0 10px; }
+  .card h3 { font-family: 'Source Serif 4', serif; font-size: 16px; margin: 0 0 8px; }
+  .card p { font-size: 12.5px; line-height: 1.6; color: var(--ink-soft); margin: 0; }
+
+  .punch {
+    position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--wood-dark); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.3);
+  }
+
+  /* ---------- circulation card (install/usage) ---------- */
+  .circulation {
+    background: var(--paper);
+    border: 1px solid var(--paper-line);
+    border-radius: 2px;
+    box-shadow: 0 10px 24px var(--card-shadow);
+    overflow: hidden;
+  }
+
+  .circulation .row { display: grid; grid-template-columns: 130px 1fr; border-bottom: 1px solid var(--paper-line); }
+  .circulation .row:last-child { border-bottom: none; }
+
+  .circulation .row .step {
+    padding: 16px; font-size: 11px; letter-spacing: 0.08em; color: var(--ink-soft);
+    border-right: 1px dashed var(--paper-line); text-transform: uppercase;
+  }
+
+  .circulation .row pre { margin: 0; padding: 16px; font-size: 13px; overflow-x: auto; color: var(--ink); white-space: pre-wrap; }
+
+  @media (max-width: 560px) {
+    .circulation .row { grid-template-columns: 1fr; }
+    .circulation .row .step { border-right: none; border-bottom: 1px dashed var(--paper-line); }
+  }
+
+  /* ---------- links footer ---------- */
+  .due-date {
+    margin-top: 64px; background: var(--paper); border: 1px solid var(--paper-line);
+    border-radius: 2px; box-shadow: 0 10px 24px var(--card-shadow);
+  }
+
+  .due-date .title-row {
+    padding: 14px 20px; border-bottom: 1px solid var(--paper-line);
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft);
+  }
+
+  table.stamps { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.stamps td { padding: 12px 20px; border-bottom: 1px dashed var(--paper-line); }
+  table.stamps tr:last-child td { border-bottom: none; }
+  table.stamps td.k { color: var(--ink-soft); width: 40%; }
+  table.stamps td.v a { text-decoration: none; }
+  table.stamps td.v a:hover { text-decoration: underline; }
+
+  footer { text-align: center; margin-top: 48px; font-size: 11px; color: rgba(230, 221, 196, 0.55); letter-spacing: 0.06em; }
+</style>
+</head>
+<body>
+
+<span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">
+  Página del proyecto apa7ref: generador de referencias bibliográficas APA 7 a partir de URLs, funcional directamente en el navegador.
+</span>
+
+<div class="wrap">
+
+  <header>
+    <span class="tab">catálogo · biblioteca de referencias</span>
+    <div class="drawer-front">
+      <span class="stamp">catalogado</span>
+      <p class="call-number">REF 010.72&nbsp;·&nbsp;apa7ref&nbsp;v0.1.0</p>
+      <h1>apa7ref</h1>
+      <p class="tagline">
+        Pega una o varias URLs y obtén su referencia en formato APA&nbsp;7,
+        generada aquí mismo, en tu navegador.
+      </p>
+    </div>
+  </header>
+
+  <section id="generador">
+    <div class="section-head">
+      <span class="num">01</span>
+      <h2>Solicitud de ficha</h2>
+      <span class="rule"></span>
+    </div>
+
+    <form class="slip" id="ref-form">
+      <div class="mode-tabs" role="tablist">
+        <button type="button" class="mode-tab active" id="tab-extractive" data-mode="extractive" role="tab" aria-selected="true">Extractivo (local)</button>
+        <button type="button" class="mode-tab" id="tab-ai" data-mode="ai" role="tab" aria-selected="false">Con IA (tu clave)</button>
+        <button type="button" class="mode-tab" id="tab-manual" data-mode="manual" role="tab" aria-selected="false">Manual</button>
+      </div>
+
+      <label for="urls" id="urls-label">URLs (una por línea)</label>
+      <textarea id="urls" placeholder="https://ejemplo.com/articulo
+https://otrositio.com/pagina"></textarea>
+
+      <div class="ai-controls" id="ai-controls">
+        <div class="ai-field grow">
+          <label for="ai-key-input">Tu clave de API de Anthropic</label>
+          <input type="password" id="ai-key-input" placeholder="sk-ant-...">
+        </div>
+        <div class="ai-field">
+          <label for="ai-model-select">Modelo</label>
+          <select id="ai-model-select">
+            <option value="claude-sonnet-5" selected>Claude Sonnet 5 (mejor calidad)</option>
+            <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (más rápido)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="manual-form" id="manual-form">
+        <div class="manual-field">
+          <label for="manual-author">Autor (persona u organización)</label>
+          <input type="text" id="manual-author" placeholder="Rojas Artavia, E. S.">
+        </div>
+        <div class="manual-field">
+          <label for="manual-date">Fecha (año, o AAAA-MM-DD)</label>
+          <input type="text" id="manual-date" placeholder="2026 o 2026-03-15">
+        </div>
+        <div class="manual-field span-2">
+          <label for="manual-title">Título</label>
+          <input type="text" id="manual-title" placeholder="Título del artículo o página">
+        </div>
+        <div class="manual-field">
+          <label for="manual-site">Nombre del sitio (opcional)</label>
+          <input type="text" id="manual-site" placeholder="Nombre del sitio o editorial">
+        </div>
+        <div class="manual-field">
+          <label for="manual-url">URL (opcional)</label>
+          <input type="text" id="manual-url" placeholder="https://ejemplo.com/articulo">
+        </div>
+      </div>
+
+      <div class="row-below">
+        <label class="checkbox-line">
+          <input type="checkbox" id="intext-toggle">
+          Incluir cita en texto (Autor, Año)
+        </label>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <span class="status-text" id="status-text"></span>
+          <button type="button" class="btn small" id="copy-all-btn">Copiar todo</button>
+          <button type="submit" class="btn primary" id="generate-btn">Generar referencias</button>
+        </div>
+      </div>
+
+      <p class="note" id="note-extractive">
+        La página descarga cada URL a través de un proxy público para evitar
+        restricciones CORS del navegador y lee sus metadatos (autor, título,
+        sitio, fecha), que luego se formatean a APA 7 con reglas fijas.
+        Funciona con páginas web y también con archivos PDF (lee su
+        metadata interna con pdf.js). Algunos sitios bloquean este tipo de
+        acceso o no publican metadatos completos (por ejemplo, YouTube
+        muestra con frecuencia una pantalla de aviso de cookies en vez de
+        la página real, y publica el autor y la fecha con microdatos que
+        el modo extractivo apenas empieza a soportar); si eso pasa con un
+        PDF, la ficha con el error te dejará subirlo directamente para
+        generar la referencia sin depender de ningún proxy. Si un sitio
+        sigue sin funcionar, el modo Manual te deja escribir los datos
+        directamente.
+      </p>
+      <p class="note" id="note-ai" style="display:none;">
+        En este modo, la página descarga cada URL igual que en el modo
+        local (mismos proxies, misma lectura de PDFs), pero en vez de
+        aplicar reglas fijas, le envía los metadatos encontrados — y un
+        fragmento del contenido de la página como contexto adicional —
+        directo desde tu navegador a la API de Anthropic, usando tu propia
+        clave, para que arme la referencia APA 7 final. Esto ayuda con
+        casos ambiguos: autores organizacionales, fechas incompletas o
+        metadatos faltantes que las reglas fijas no siempre resuelven
+        bien. Tu clave no pasa por ningún servidor de apa7ref ni se
+        guarda en ningún lado; se pierde al recargar la página. El uso
+        tiene el costo que aplique tu cuenta de Anthropic.
+      </p>
+      <p class="note" id="note-manual" style="display:none;">
+        Escribe los datos de la fuente a mano y la página arma la
+        referencia APA 7 localmente, con las mismas reglas de formato
+        que el modo extractivo (sin descargar nada ni usar ningún
+        proxy). Útil para fuentes que los otros modos no logran leer,
+        como videos de YouTube, contenido detrás de un muro de pago, o
+        páginas que bloquean el acceso automatizado.
+      </p>
+    </form>
+
+    <div id="results" aria-live="polite"></div>
+  </section>
+
+  <section id="modulos">
+    <div class="section-head">
+      <span class="num">02</span>
+      <h2>Fichero del proyecto</h2>
+      <span class="rule"></span>
+    </div>
+
+    <div class="catalog">
+      <article class="card">
+        <p class="cat-no">apa7ref / extractor.py</p>
+        <h3>Extracción</h3>
+        <p>Versión Python de la misma lógica que usa esta página: descarga
+        el HTML y busca metadatos de autor, título, sitio y fecha.</p>
+        <span class="punch" aria-hidden="true"></span>
+      </article>
+
+      <article class="card">
+        <p class="cat-no">apa7ref / formatter.py</p>
+        <h3>Formateo APA&nbsp;7</h3>
+        <p>Normaliza autor y fecha al estilo APA 7, distingue autores
+        individuales de organizaciones y arma la referencia final.</p>
+        <span class="punch" aria-hidden="true"></span>
+      </article>
+
+      <article class="card">
+        <p class="cat-no">apa7ref / cli.py</p>
+        <h3>Línea de comandos</h3>
+        <p>Procesa una o varias URLs, lee listas desde archivo y exporta
+        las referencias generadas a un archivo de salida.</p>
+        <span class="punch" aria-hidden="true"></span>
+      </article>
+
+      <article class="card">
+        <p class="cat-no">tests / test_formatter.py</p>
+        <h3>Pruebas</h3>
+        <p>Seis pruebas unitarias que verifican autor, fecha, organización
+        y cita en texto.</p>
+        <span class="punch" aria-hidden="true"></span>
+      </article>
+
+      <article class="card">
+        <p class="cat-no">README.md · LICENSE</p>
+        <h3>Documentación</h3>
+        <p>Guía de instalación, uso por CLI y como librería, y licencia
+        MIT.</p>
+        <span class="punch" aria-hidden="true"></span>
+      </article>
+
+      <article class="card">
+        <p class="cat-no">index.html</p>
+        <h3>Esta página</h3>
+        <p>Reimplementa extractor.py y formatter.py en JavaScript, usa
+        pdf.js para leer metadatos de PDFs, y puede pedirle a Claude (con
+        tu propia clave) que interprete casos ambiguos.</p>
+        <span class="punch" aria-hidden="true"></span>
+      </article>
+    </div>
+  </section>
+
+  <section id="instalacion">
+    <div class="section-head">
+      <span class="num">03</span>
+      <h2>Tarjeta de circulación (paquete Python)</h2>
+      <span class="rule"></span>
+    </div>
+
+    <div class="circulation">
+      <div class="row">
+        <div class="step">Instalar</div>
+        <pre>pip install -e .</pre>
+      </div>
+      <div class="row">
+        <div class="step">Una URL</div>
+        <pre>apa7ref https://ejemplo.com/articulo</pre>
+      </div>
+      <div class="row">
+        <div class="step">Desde archivo</div>
+        <pre>apa7ref --file urls.txt --output referencias.txt</pre>
+      </div>
+    </div>
+  </section>
+
+  <div class="due-date">
+    <div class="title-row">Enlaces</div>
+    <table class="stamps">
+      <tr>
+        <td class="k">Repositorio</td>
+        <td class="v"><a href="https://github.com/efrabuilder/apa7-url-ref">github.com/efrabuilder/apa7-url-ref</a></td>
+      </tr>
+      <tr>
+        <td class="k">Licencia</td>
+        <td class="v">MIT</td>
+      </tr>
+      <tr>
+        <td class="k">Requisitos (paquete Python)</td>
+        <td class="v">Python 3.9+, requests, beautifulsoup4</td>
+      </tr>
+    </table>
+  </div>
+
+  <footer>apa7ref — índice del proyecto - © 2026 All rights reserved · Designed & built by Efraín Sebastián Rojas Artavia</footer>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+  if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  }
+</script>
+<script>
+(function () {
+  "use strict";
+
+  var MONTHS_ES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+
+  var META_AUTHOR = ["author","article:author","og:author","twitter:creator","citation_author","dc.creator","parsely-author"];
+  var META_TITLE = ["og:title","twitter:title","citation_title"];
+  var META_SITE = ["og:site_name","application-name"];
+  var META_DATE = ["article:published_time","og:published_time","citation_publication_date","citation_date","dc.date","date","publish-date","parsely-pub-date"];
+
+  // Algunos sitios (YouTube entre ellos) publican sus metadatos con
+  // microdatos schema.org (itemprop) en vez de las etiquetas meta
+  // estándar name="" / property="". Se agregan aquí como alternativa.
+  var ITEMPROP_AUTHOR = ["author", "name"];
+  var ITEMPROP_DATE = ["datePublished", "uploadDate"];
+
+  var ORG_MARKERS = /\b(inc|llc|ltd|corp|company|co\.|team|staff|editorial|redacci[oó]n|news|noticias|university|universidad|department|departamento|agency|agencia)\b/i;
+
+  function getMeta(doc, names) {
+    for (var i = 0; i < names.length; i++) {
+      var el = doc.querySelector('meta[property="' + names[i] + '"]') || doc.querySelector('meta[name="' + names[i] + '"]');
+      if (el) {
+        var content = (el.getAttribute("content") || "").trim();
+        if (content) return content;
+      }
+    }
+    return null;
+  }
+
+  function getItemprop(doc, names) {
+    for (var i = 0; i < names.length; i++) {
+      var el = doc.querySelector('[itemprop="' + names[i] + '"]');
+      if (el) {
+        var content = (el.getAttribute("content") || el.textContent || "").trim();
+        if (content) return content;
+      }
+    }
+    return null;
+  }
+
+  function extractAuthor(doc) {
+    var author = getMeta(doc, META_AUTHOR);
+    if (author) {
+      if (/^https?:\/\//i.test(author)) return null;
+      return author;
+    }
+    var itemAuthor = getItemprop(doc, ITEMPROP_AUTHOR);
+    if (itemAuthor && !/^https?:\/\//i.test(itemAuthor)) return itemAuthor;
+    var tag = doc.querySelector('[rel="author"]') || doc.querySelector('[class*="author" i]');
+    if (tag && tag.textContent && tag.textContent.trim()) return tag.textContent.trim();
+    return null;
+  }
+
+  function extractTitle(doc) {
+    var title = getMeta(doc, META_TITLE);
+    if (title) return title;
+    if (doc.title && doc.title.trim()) return doc.title.trim();
+    var h1 = doc.querySelector("h1");
+    if (h1 && h1.textContent.trim()) return h1.textContent.trim();
+    return null;
+  }
+
+  function extractSiteName(doc, url) {
+    var site = getMeta(doc, META_SITE);
+    if (site) return site;
+    try {
+      var hostname = new URL(url).hostname.replace(/^www\./, "");
+      return hostname || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function extractPublishedDate(doc) {
+    var date = getMeta(doc, META_DATE);
+    if (date) return date;
+    return getItemprop(doc, ITEMPROP_DATE);
+  }
+
+  function extractExcerpt(doc) {
+    if (!doc.body) return "";
+    var text = doc.body.textContent || "";
+    text = text.replace(/\s+/g, " ").trim();
+    return text.slice(0, 3000);
+  }
+
+  function parseDate(raw) {
+    if (!raw) return null;
+    var trimmed = raw.trim();
+    if (/^(19|20)\d{2}$/.test(trimmed)) {
+      return { year: parseInt(trimmed, 10), month: null, day: null, onlyYear: true };
+    }
+    var d = new Date(trimmed);
+    if (!isNaN(d.getTime())) {
+      return { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(), onlyYear: false };
+    }
+    var m = trimmed.match(/(19|20)\d{2}/);
+    if (m) return { year: parseInt(m[0], 10), month: null, day: null, onlyYear: true };
+    return null;
+  }
+
+  function formatDateApa(parsed) {
+    if (!parsed) return "s.f.";
+    if (parsed.onlyYear || !parsed.month) return String(parsed.year);
+    return parsed.year + ", " + MONTHS_ES[parsed.month - 1] + " " + parsed.day;
+  }
+
+  function formatAuthor(author) {
+    if (!author) return null;
+    var trimmedAuthor = author.trim();
+    if (ORG_MARKERS.test(trimmedAuthor)) return trimmedAuthor;
+    var parts = trimmedAuthor.split(/\s+/);
+    if (parts.length < 2) return trimmedAuthor;
+    var lastName = parts[parts.length - 1];
+    var firstNames = parts.slice(0, -1);
+    var initials = firstNames.map(function (n) { return n[0] ? n[0].toUpperCase() + "." : ""; }).join(" ");
+    return lastName + ", " + initials;
+  }
+
+  function buildReference(meta) {
+    var parsedDate = parseDate(meta.published_date);
+    var dateStr = formatDateApa(parsedDate);
+
+    var title = (meta.title || "Sin título").trim();
+    if (!/[.?!]$/.test(title)) title += ".";
+
+    var siteName = (meta.site_name || "").trim();
+    var author = formatAuthor(meta.author);
+
+    var authorPart, sitePart;
+    if (author) {
+      var sep = /\.$/.test(author) ? "" : ".";
+      authorPart = author + sep + " (" + dateStr + "). ";
+      sitePart = siteName ? siteName + ". " : "";
+    } else {
+      authorPart = siteName ? siteName + ". (" + dateStr + "). " : "(" + dateStr + "). ";
+      sitePart = "";
+    }
+
+    var urlPart = meta.url ? meta.url : "";
+    var reference = authorPart + title + " " + sitePart + urlPart;
+    return reference.replace(/\s{2,}/g, " ").trim();
+  }
+
+  function buildInTextCitation(meta) {
+    var parsedDate = parseDate(meta.published_date);
+    var year = parsedDate ? parsedDate.year : "s.f.";
+    var author = formatAuthor(meta.author) || meta.site_name || "Autor desconocido";
+    var lastName = author.split(",")[0];
+    return "(" + lastName + ", " + year + ")";
+  }
+
+  /* ---------------- AI-assisted formatting ---------------- */
+
+  function buildAIPrompt(meta) {
+    return (
+      "Con base en la siguiente información extraída de una URL, genera la " +
+      "referencia bibliográfica en formato APA 7 (7ª edición) y la cita en " +
+      "texto correspondiente (Autor, Año), siguiendo las reglas oficiales de " +
+      "APA 7: distingue autores individuales de autores organizacionales, usa " +
+      "apellido e iniciales para personas, usa \"s.f.\" cuando falte la fecha, " +
+      "y sigue el orden Autor. (Año). Título. Sitio. URL — omitiendo el sitio " +
+      "si es igual al nombre del autor. Si los metadatos están incompletos, " +
+      "usa el fragmento de contenido para inferir lo que falta de forma " +
+      "razonable; si algo simplemente no se puede determinar, sigue las " +
+      "reglas de APA 7 para ese caso (por ejemplo, sin autor: empieza por el " +
+      "título).\n\n" +
+      "Responde ÚNICAMENTE con un objeto JSON, sin texto adicional ni bloques " +
+      "de código, con exactamente estas claves:\n" +
+      '{"reference": "<referencia completa en APA 7>", "inText": "<cita en texto, ej. (Apellido, 2024)>"}' +
+      "\n\nURL: " + meta.url +
+      "\nAutor encontrado en metadatos: " + (meta.author || "no encontrado") +
+      "\nTítulo encontrado en metadatos: " + (meta.title || "no encontrado") +
+      "\nSitio encontrado en metadatos: " + (meta.site_name || "no encontrado") +
+      "\nFecha de publicación encontrada en metadatos: " + (meta.published_date || "no encontrada") +
+      "\n\nFragmento del contenido de la página (contexto adicional, puede estar vacío):\n" +
+      (meta.excerpt || "(sin fragmento disponible)")
+    );
+  }
+
+  function callClaude(prompt, apiKey, model) {
+    return fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify({
+        model: model,
+        max_tokens: 500,
+        messages: [{ role: "user", content: prompt }]
+      })
+    }).then(function (res) {
+      if (!res.ok) {
+        return res.json().catch(function () { return null; }).then(function (body) {
+          var detail = body && body.error && body.error.message ? body.error.message : ("HTTP " + res.status);
+          throw new Error(detail);
+        });
+      }
+      return res.json();
+    }).then(function (data) {
+      var text = (data.content || [])
+        .filter(function (b) { return b.type === "text"; })
+        .map(function (b) { return b.text; })
+        .join("\n")
+        .trim();
+      if (!text) throw new Error("La API no devolvió texto.");
+      return text;
+    });
+  }
+
+  function parseAIReferenceResponse(raw, meta) {
+    var cleaned = raw.trim().replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/, "").trim();
+    var jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        var parsed = JSON.parse(jsonMatch[0]);
+        if (parsed && parsed.reference) {
+          return { reference: String(parsed.reference).trim(), inText: String(parsed.inText || "").trim() || buildInTextCitation(meta) };
+        }
+      } catch (e) {
+        // sigue al fallback de abajo
+      }
+    }
+    // Si el modelo no devolvió JSON válido, usa el texto tal cual como referencia
+    // y arma una cita en texto local a partir de los metadatos ya conocidos.
+    return { reference: cleaned, inText: buildInTextCitation(meta) };
+  }
+
+  function generateReferenceWithAI(meta, apiKey, model) {
+    return callClaude(buildAIPrompt(meta), apiKey, model).then(function (raw) {
+      return parseAIReferenceResponse(raw, meta);
+    });
+  }
+
+  /* ---------------- fetching (proxies) ---------------- */
+
+  function normalizeUrl(raw) {
+    var url = raw.trim();
+    if (!url) return null;
+    if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+    return url;
+  }
+
+  function proxyBuilders(url) {
+    var encoded = encodeURIComponent(url);
+    return [
+      function () { return "https://api.allorigins.win/raw?url=" + encoded; },
+      function () { return "https://api.codetabs.com/v1/proxy?quest=" + encoded; },
+      function () { return "https://corsproxy.io/?url=" + encoded; }
+    ];
+  }
+
+  function fetchWithTimeout(url, ms) {
+    var signal = (typeof AbortSignal !== "undefined" && AbortSignal.timeout)
+      ? AbortSignal.timeout(ms)
+      : undefined;
+    return fetch(url, signal ? { signal: signal } : {});
+  }
+
+  function looksLikeHtml(text) {
+    return /<html[\s>]/i.test(text) || /<!doctype html/i.test(text) || /<head[\s>]/i.test(text) || /<body[\s>]/i.test(text);
+  }
+
+  function looksLikePdfUrl(url) {
+    return /\.pdf(\?|#|$)/i.test(url);
+  }
+
+  function looksLikePdfText(text) {
+    return text.slice(0, 5) === "%PDF-";
+  }
+
+  function fetchHtml(url) {
+    var builders = proxyBuilders(url);
+    var lastError = null;
+    var attempt = function (index) {
+      if (index >= builders.length) {
+        var suffix = lastError ? " (" + lastError + ")" : "";
+        return Promise.reject(new Error("No se pudo descargar la página tras probar varios proxies" + suffix + "."));
+      }
+      return fetchWithTimeout(builders[index](), 15000)
+        .then(function (res) {
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          return res.text();
+        })
+        .then(function (text) {
+          if (!text || text.length < 20) throw new Error("respuesta vacía");
+          if (looksLikePdfText(text)) {
+            throw { pdf: true };
+          }
+          if (!looksLikeHtml(text)) throw new Error("la respuesta no parece HTML");
+          return text;
+        })
+        .catch(function (err) {
+          if (err && err.pdf) {
+            return Promise.reject(err);
+          }
+          lastError = (err && err.message) || "error desconocido";
+          return attempt(index + 1);
+        });
+    };
+    return attempt(0);
+  }
+
+  function fetchBinary(url) {
+    var builders = proxyBuilders(url);
+    var lastError = null;
+    var attempt = function (index) {
+      if (index >= builders.length) {
+        var suffix = lastError ? " (" + lastError + ")" : "";
+        return Promise.reject(new Error("no se pudo descargar el archivo tras probar varios proxies" + suffix + "."));
+      }
+      return fetchWithTimeout(builders[index](), 25000)
+        .then(function (res) {
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          return res.arrayBuffer();
+        })
+        .then(function (buffer) {
+          if (!buffer || buffer.byteLength < 100) throw new Error("archivo vacío o incompleto");
+          return buffer;
+        })
+        .catch(function (err) {
+          lastError = (err && err.message) || "error desconocido";
+          return attempt(index + 1);
+        });
+    };
+    return attempt(0);
+  }
+
+  function siteNameFromUrl(url) {
+    try {
+      var hostname = new URL(url).hostname.replace(/^www\./, "");
+      return hostname || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function filenameToTitle(url) {
+    try {
+      var pathname = new URL(url).pathname;
+      var filename = decodeURIComponent(pathname.split("/").pop() || "");
+      filename = filename.replace(/\.pdf$/i, "").replace(/[-_]+/g, " ").trim();
+      return filename || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function parsePdfDate(raw) {
+    if (!raw) return null;
+    var m = String(raw).match(/D:(\d{4})(\d{2})?(\d{2})?/);
+    if (!m) return null;
+    var year = m[1];
+    var month = m[2] || "01";
+    var day = m[3] || "01";
+    return year + "-" + month + "-" + day;
+  }
+
+  function pdfMetaFromBuffer(url, buffer) {
+    return pdfjsLib.getDocument({ data: buffer }).promise.then(function (pdfDoc) {
+      var metadataPromise = pdfDoc.getMetadata().catch(function () { return { info: {} }; });
+      var excerptPromise = pdfDoc.getPage(1)
+        .then(function (page) { return page.getTextContent(); })
+        .then(function (content) {
+          return content.items.map(function (item) { return item.str; }).join(" ").replace(/\s+/g, " ").trim().slice(0, 3000);
+        })
+        .catch(function () { return ""; });
+      return Promise.all([metadataPromise, excerptPromise]);
+    }).then(function (results) {
+      var metaResult = results[0];
+      var excerpt = results[1];
+      var info = (metaResult && metaResult.info) || {};
+      var meta = {
+        url: url,
+        title: (info.Title && String(info.Title).trim()) || filenameToTitle(url) || "Sin título",
+        author: (info.Author && String(info.Author).trim()) || null,
+        site_name: siteNameFromUrl(url),
+        published_date: parsePdfDate(info.CreationDate) || parsePdfDate(info.ModDate),
+        excerpt: excerpt
+      };
+      return meta;
+    });
+  }
+
+  function formatMetaLocally(meta) {
+    return {
+      ok: true,
+      url: meta.url,
+      reference: buildReference(meta),
+      inText: buildInTextCitation(meta)
+    };
+  }
+
+  function formatMetaWithAI(meta, apiKey, model) {
+    return generateReferenceWithAI(meta, apiKey, model).then(function (ai) {
+      return { ok: true, url: meta.url, reference: ai.reference, inText: ai.inText, aiGenerated: true };
+    });
+  }
+
+  function finalizeMeta(meta, run) {
+    if (run.mode === "ai") return formatMetaWithAI(meta, run.apiKey, run.model);
+    return Promise.resolve(formatMetaLocally(meta));
+  }
+
+  function processPdf(url, run) {
+    if (!window.pdfjsLib) {
+      return Promise.resolve({
+        ok: false,
+        url: url,
+        error: "no se pudo cargar el lector de PDF (pdf.js). Revisa tu conexión e inténtalo de nuevo."
+      });
+    }
+    return fetchBinary(url)
+      .then(function (buffer) { return pdfMetaFromBuffer(url, buffer); })
+      .then(function (meta) { return finalizeMeta(meta, run); })
+      .catch(function (err) {
+        return {
+          ok: false,
+          url: url,
+          error: "no se pudo leer este PDF: " + ((err && err.message) || "error desconocido")
+        };
+      });
+  }
+
+  function processPdfFromFile(url, file, run) {
+    return new Promise(function (resolve) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        pdfMetaFromBuffer(url, reader.result)
+          .then(function (meta) { return finalizeMeta(meta, run); })
+          .then(resolve)
+          .catch(function (err) {
+            resolve({
+              ok: false,
+              url: url,
+              error: "no se pudo leer el archivo subido: " + ((err && err.message) || "error desconocido")
+            });
+          });
+      };
+      reader.onerror = function () {
+        resolve({ ok: false, url: url, error: "no se pudo leer el archivo subido." });
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  function generateReference(rawUrl, run) {
+    var url = normalizeUrl(rawUrl);
+    if (!url) return Promise.resolve({ ok: false, url: rawUrl, error: "URL vacía." });
+
+    if (looksLikePdfUrl(url)) {
+      return processPdf(url, run);
+    }
+
+    return fetchHtml(url).then(function (html) {
+      var doc = new DOMParser().parseFromString(html, "text/html");
+      var meta = {
+        url: url,
+        title: extractTitle(doc),
+        author: extractAuthor(doc),
+        site_name: extractSiteName(doc, url),
+        published_date: extractPublishedDate(doc),
+        excerpt: extractExcerpt(doc)
+      };
+      return finalizeMeta(meta, run);
+    }).catch(function (err) {
+      if (err && err.pdf) {
+        return processPdf(url, run);
+      }
+      if (err instanceof Error && /^(La API no devolvió|HTTP \d|Ingresa)/.test(err.message || "")) {
+        return { ok: false, url: url, error: err.message };
+      }
+      return { ok: false, url: url, error: (err && err.message) || "no se pudo procesar esta URL." };
+    });
+  }
+
+  function generateManualReference(fields) {
+    var meta = {
+      url: fields.url || "",
+      title: fields.title || null,
+      author: fields.author || null,
+      site_name: fields.site || null,
+      published_date: fields.date || null
+    };
+    if (!meta.title) {
+      return { ok: false, url: meta.url || "(entrada manual)", error: "el título es obligatorio en el modo manual." };
+    }
+    return {
+      ok: true,
+      url: meta.url || "(entrada manual)",
+      reference: buildReference(meta),
+      inText: buildInTextCitation(meta)
+    };
+  }
+
+  function copyText(text, btn) {
+    var done = function () {
+      var original = btn.textContent;
+      btn.textContent = "Copiado";
+      setTimeout(function () { btn.textContent = original; }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(function () { fallbackCopy(text); done(); });
+    } else {
+      fallbackCopy(text);
+      done();
+    }
+  }
+
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+
+  var form = document.getElementById("ref-form");
+  var textarea = document.getElementById("urls");
+  var urlsLabel = document.getElementById("urls-label");
+  var results = document.getElementById("results");
+  var generateBtn = document.getElementById("generate-btn");
+  var copyAllBtn = document.getElementById("copy-all-btn");
+  var intextToggle = document.getElementById("intext-toggle");
+  var statusText = document.getElementById("status-text");
+
+  var tabExtractive = document.getElementById("tab-extractive");
+  var tabAi = document.getElementById("tab-ai");
+  var tabManual = document.getElementById("tab-manual");
+  var aiControls = document.getElementById("ai-controls");
+  var manualForm = document.getElementById("manual-form");
+  var noteExtractive = document.getElementById("note-extractive");
+  var noteAi = document.getElementById("note-ai");
+  var noteManual = document.getElementById("note-manual");
+  var aiKeyInput = document.getElementById("ai-key-input");
+  var aiModelSelect = document.getElementById("ai-model-select");
+
+  var manualAuthor = document.getElementById("manual-author");
+  var manualDate = document.getElementById("manual-date");
+  var manualTitle = document.getElementById("manual-title");
+  var manualSite = document.getElementById("manual-site");
+  var manualUrl = document.getElementById("manual-url");
+
+  var currentMode = "extractive";
+  var lastRun = { mode: "extractive", apiKey: "", model: "" };
+
+  function setMode(mode) {
+    currentMode = mode;
+    var isAi = mode === "ai";
+    var isManual = mode === "manual";
+    tabExtractive.classList.toggle("active", !isAi && !isManual);
+    tabAi.classList.toggle("active", isAi);
+    tabManual.classList.toggle("active", isManual);
+    tabExtractive.setAttribute("aria-selected", String(!isAi && !isManual));
+    tabAi.setAttribute("aria-selected", String(isAi));
+    tabManual.setAttribute("aria-selected", String(isManual));
+    aiControls.classList.toggle("show", isAi);
+    manualForm.classList.toggle("show", isManual);
+    textarea.style.display = isManual ? "none" : "block";
+    urlsLabel.style.display = isManual ? "none" : "block";
+    noteExtractive.style.display = (!isAi && !isManual) ? "block" : "none";
+    noteAi.style.display = isAi ? "block" : "none";
+    noteManual.style.display = isManual ? "block" : "none";
+    generateBtn.textContent = isManual ? "Generar referencia" : "Generar referencias";
+    statusText.textContent = "";
+  }
+  tabExtractive.addEventListener("click", function () { setMode("extractive"); });
+  tabAi.addEventListener("click", function () { setMode("ai"); });
+  tabManual.addEventListener("click", function () { setMode("manual"); });
+
+  function renderPending(urls) {
+    results.innerHTML = "";
+    urls.forEach(function (u, i) {
+      var card = document.createElement("div");
+      card.className = "result-card pending";
+      card.id = "result-" + i;
+      card.innerHTML =
+        '<p class="src">' + u + '</p>' +
+        '<p class="ref-text">' + (currentMode === "ai" ? "Generando referencia con IA…" : "Generando referencia…") + '</p>';
+      results.appendChild(card);
+    });
+  }
+
+  function renderResult(index, result, includeInText) {
+    var card = document.getElementById("result-" + index);
+    if (!card) return;
+    if (result.ok) {
+      card.className = "result-card";
+      var badge = result.aiGenerated ? '<span class="ai-badge">Generado con IA</span><br>' : "";
+      var intextHtml = includeInText ? '<p class="intext">' + escapeHtml(result.inText) + '</p>' : "";
+      card.innerHTML =
+        '<p class="src">' + escapeHtml(result.url) + '</p>' +
+        badge +
+        '<p class="ref-text">' + escapeHtml(result.reference) + '</p>' +
+        intextHtml +
+        '<div class="result-actions"><button type="button" class="btn small copy-one">Copiar</button></div>';
+      var copyBtn = card.querySelector(".copy-one");
+      copyBtn.addEventListener("click", function () {
+        var text = result.reference + (includeInText ? "  " + result.inText : "");
+        copyText(text, copyBtn);
+      });
+    } else {
+      card.className = "result-card error";
+      var uploadHtml = "";
+      if (looksLikePdfUrl(result.url)) {
+        uploadHtml =
+          '<div class="pdf-fallback">' +
+          '<label class="pdf-fallback-label" for="pdf-upload-' + index + '">' +
+          '¿Ya tienes este PDF descargado? Súbelo aquí para generar la referencia sin depender de un proxy:' +
+          '</label>' +
+          '<input type="file" accept="application/pdf" id="pdf-upload-' + index + '">' +
+          '</div>';
+      }
+      card.innerHTML =
+        '<p class="src">' + escapeHtml(result.url) + '</p>' +
+        '<p class="ref-text">No se pudo generar: ' + escapeHtml(result.error) + '</p>' +
+        uploadHtml;
+
+      var uploadInput = card.querySelector('#pdf-upload-' + index);
+      if (uploadInput) {
+        uploadInput.addEventListener("change", function (e) {
+          var file = e.target.files && e.target.files[0];
+          if (!file) return;
+          card.className = "result-card pending";
+          card.querySelector(".ref-text").textContent = lastRun.mode === "ai" ? "Leyendo PDF subido y generando con IA…" : "Leyendo PDF subido…";
+          processPdfFromFile(result.url, file, lastRun).then(function (uploadResult) {
+            lastResults[index] = { result: uploadResult, includeInText: includeInText };
+            renderResult(index, uploadResult, includeInText);
+          });
+        });
+      }
+    }
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  var lastResults = [];
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var includeInText = intextToggle.checked;
+
+    if (currentMode === "manual") {
+      var fields = {
+        author: manualAuthor.value.trim(),
+        date: manualDate.value.trim(),
+        title: manualTitle.value.trim(),
+        site: manualSite.value.trim(),
+        url: manualUrl.value.trim()
+      };
+      lastRun = { mode: "manual", apiKey: "", model: "" };
+      statusText.textContent = "";
+      var result = generateManualReference(fields);
+      results.innerHTML = "";
+      var card = document.createElement("div");
+      card.className = "result-card";
+      card.id = "result-0";
+      results.appendChild(card);
+      lastResults = [{ result: result, includeInText: includeInText }];
+      renderResult(0, result, includeInText);
+      return;
+    }
+
+    var urls = textarea.value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean);
+    if (urls.length === 0) return;
+
+    if (currentMode === "ai" && !aiKeyInput.value.trim()) {
+      statusText.textContent = "Ingresa tu clave de API de Anthropic primero.";
+      return;
+    }
+
+    lastRun = { mode: currentMode, apiKey: aiKeyInput.value.trim(), model: aiModelSelect.value };
+    statusText.textContent = "";
+    generateBtn.disabled = true;
+    generateBtn.textContent = "Generando…";
+    renderPending(urls);
+    lastResults = [];
+
+    var tasks = urls.map(function (u, i) {
+      return generateReference(u, lastRun).then(function (result) {
+        lastResults[i] = { result: result, includeInText: includeInText };
+        renderResult(i, result, includeInText);
+      });
+    });
+
+    Promise.all(tasks).finally(function () {
+      generateBtn.disabled = false;
+      generateBtn.textContent = "Generar referencias";
+    });
+  });
+
+  copyAllBtn.addEventListener("click", function () {
+    var lines = lastResults
+      .filter(function (r) { return r && r.result.ok; })
+      .map(function (r) {
+        return r.result.reference + (r.includeInText ? "  " + r.result.inText : "");
+      });
+    if (lines.length === 0) return;
+    copyText(lines.join("\n\n"), copyAllBtn);
+  });
+})();
+</script>
+</body>
+</html>
