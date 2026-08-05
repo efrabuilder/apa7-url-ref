@@ -886,13 +886,43 @@ https://otrositio.com/pagina"></textarea>
     return url;
   }
 
+  // Cambia esto por la URL de tu propio Worker si desplegaste uno
+  // (ver worker/apa7ref-proxy.js). Déjalo en "" para usar solo los
+  // proxies públicos de respaldo.
+  var OWN_WORKER_URL = ""; // ej: "https://apa7ref-proxy.tu-usuario.workers.dev"
+
   function proxyBuilders(url) {
     var encoded = encodeURIComponent(url);
-    return [
-      function () { return "https://api.allorigins.win/raw?url=" + encoded; },
-      function () { return "https://api.codetabs.com/v1/proxy?quest=" + encoded; },
-      function () { return "https://corsproxy.io/?url=" + encoded; }
-    ];
+    var builders = [];
+    if (OWN_WORKER_URL) {
+      builders.push(function () { return OWN_WORKER_URL + "?url=" + encoded; });
+    }
+    builders.push(function () { return "https://api.allorigins.win/raw?url=" + encoded; });
+    builders.push(function () { return "https://api.codetabs.com/v1/proxy?quest=" + encoded; });
+    builders.push(function () { return "https://corsproxy.io/?url=" + encoded; });
+    return builders;
+  }
+
+  // Dominios donde el modo extractivo casi nunca funciona vía proxy
+  // público: YouTube bloquea agresivamente el tráfico de datacenter y
+  // publica sus metadatos con microdatos que muchos proxies truncan o
+  // reciben con error CORS/429 antes de que lleguen a tu navegador.
+  // Detectarlo antes de intentar evita 3 llamadas fallidas garantizadas
+  // y le ahorra la espera al usuario.
+  var KNOWN_BLOCKED_HOSTS = [
+    "youtube.com", "youtu.be", "m.youtube.com",
+    "instagram.com", "facebook.com", "tiktok.com", "x.com", "twitter.com"
+  ];
+
+  function isKnownBlockedHost(url) {
+    try {
+      var hostname = new URL(url).hostname.replace(/^www\./, "").toLowerCase();
+      return KNOWN_BLOCKED_HOSTS.some(function (blocked) {
+        return hostname === blocked || hostname.endsWith("." + blocked);
+      });
+    } catch (e) {
+      return false;
+    }
   }
 
   function fetchWithTimeout(url, ms) {
@@ -1092,6 +1122,14 @@ https://otrositio.com/pagina"></textarea>
   function generateReference(rawUrl, run) {
     var url = normalizeUrl(rawUrl);
     if (!url) return Promise.resolve({ ok: false, url: rawUrl, error: "URL vacía." });
+
+    if (isKnownBlockedHost(url)) {
+      return Promise.resolve({
+        ok: false,
+        url: url,
+        error: "este sitio bloquea el acceso automatizado y casi nunca funciona con el modo extractivo. Usa el modo Manual para esta fuente."
+      });
+    }
 
     if (looksLikePdfUrl(url)) {
       return processPdf(url, run);
