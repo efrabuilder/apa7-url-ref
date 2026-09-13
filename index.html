@@ -275,6 +275,59 @@
     .manual-form { grid-template-columns: 1fr; }
   }
 
+  /* ---------- controles avanzados: apellidos + archivos locales ---------- */
+  .extra-controls {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--paper-line);
+  }
+  .extra-controls.hide { display: none; }
+  .extra-field { display: flex; flex-direction: column; gap: 6px; }
+  .extra-field.grow { flex: 1; min-width: 240px; }
+  .extra-field label {
+    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft); margin: 0;
+  }
+  .extra-field input[type="number"] {
+    font-family: 'IBM Plex Mono', monospace;
+    background: #fbf7ea;
+    border: 1px solid var(--paper-line);
+    border-radius: 2px;
+    padding: 8px 10px;
+    font-size: 13px;
+    color: var(--ink);
+    width: 90px;
+  }
+  .extra-field input[type="file"] {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--ink);
+  }
+  .extra-field .hint {
+    font-size: 10.5px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+    margin: 0;
+  }
+  .file-queue { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+  .file-queue-item {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--ink);
+  }
+  .file-queue-item .remove-file {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--stamp);
+    background: none;
+    border: 1px solid var(--stamp);
+    border-radius: 2px;
+    padding: 1px 6px;
+    cursor: pointer;
+  }
+
   /* ---------- results ---------- */
   #results { display: flex; flex-direction: column; gap: 14px; margin-top: 22px; }
 
@@ -439,6 +492,29 @@
       <textarea id="urls" placeholder="https://ejemplo.com/articulo
 https://otrositio.com/pagina"></textarea>
 
+      <div class="extra-controls" id="extra-controls">
+        <div class="extra-field">
+          <label for="surname-words-input">Palabras del apellido</label>
+          <input type="number" id="surname-words-input" min="1" max="4" placeholder="auto">
+          <p class="hint">
+            Deja vacío para detección automática (solo por partícula: "de
+            la Cruz", "van der Berg"). Escribe 2 para forzar apellidos
+            dobles sin partícula, como "Rojas Artavia". Se aplica a todos
+            los autores de esta tanda.
+          </p>
+        </div>
+        <div class="extra-field grow">
+          <label for="file-upload-input">Archivos PDF sin enlace</label>
+          <input type="file" id="file-upload-input" accept="application/pdf" multiple>
+          <p class="hint">
+            Añade PDF locales (tesis, capítulos, documentos sin URL) para
+            citarlos leyendo su metadata interna, sin necesidad de subirlos
+            a ningún lado.
+          </p>
+          <div class="file-queue" id="file-queue"></div>
+        </div>
+      </div>
+
       <div class="ai-controls" id="ai-controls">
         <div class="ai-field grow">
           <label for="ai-key-input">Tu clave de API de Anthropic</label>
@@ -474,6 +550,10 @@ https://otrositio.com/pagina"></textarea>
           <label for="manual-url">URL (opcional)</label>
           <input type="text" id="manual-url" placeholder="https://ejemplo.com/articulo">
         </div>
+        <div class="manual-field">
+          <label for="manual-surname-words">Palabras del apellido (opcional)</label>
+          <input type="text" id="manual-surname-words" placeholder="auto, o 2 para apellido doble">
+        </div>
       </div>
 
       <div class="row-below">
@@ -491,9 +571,14 @@ https://otrositio.com/pagina"></textarea>
       <p class="note" id="note-extractive">
         La página descarga cada URL a través de un proxy público para evitar
         restricciones CORS del navegador y lee sus metadatos (autor, título,
-        sitio, fecha), que luego se formatean a APA 7 con reglas fijas.
-        Funciona con páginas web y también con archivos PDF (lee su
-        metadata interna con pdf.js). Algunos sitios bloquean este tipo de
+        sitio, fecha), que luego se formatean a APA 7 con reglas fijas,
+        incluyendo varios autores en un mismo campo (los separa y arma la
+        lista con "&"/"et al." según corresponda) y apellidos con partícula
+        ("de la Cruz", "van der Berg"). Para apellidos dobles sin partícula
+        (p. ej. "Rojas Artavia"), usa el campo "Palabras del apellido" de
+        arriba. Funciona con páginas web y también con archivos PDF (lee su
+        metadata interna con pdf.js) — puedes añadir PDF locales sin URL con
+        "Archivos PDF sin enlace". Algunos sitios bloquean este tipo de
         acceso o no publican metadatos completos (por ejemplo, YouTube
         muestra con frecuencia una pantalla de aviso de cookies en vez de
         la página real, y publica el autor y la fecha con microdatos que
@@ -505,16 +590,17 @@ https://otrositio.com/pagina"></textarea>
       </p>
       <p class="note" id="note-ai" style="display:none;">
         En este modo, la página descarga cada URL igual que en el modo
-        local (mismos proxies, misma lectura de PDFs), pero en vez de
-        aplicar reglas fijas, le envía los metadatos encontrados — y un
-        fragmento del contenido de la página como contexto adicional —
-        directo desde tu navegador a la API de Anthropic, usando tu propia
-        clave, para que arme la referencia APA 7 final. Esto ayuda con
-        casos ambiguos: autores organizacionales, fechas incompletas o
-        metadatos faltantes que las reglas fijas no siempre resuelven
-        bien. Tu clave no pasa por ningún servidor de apa7ref ni se
-        guarda en ningún lado; se pierde al recargar la página. El uso
-        tiene el costo que aplique tu cuenta de Anthropic.
+        local (mismos proxies, misma lectura de PDFs, mismos PDF locales
+        sin URL), pero en vez de aplicar reglas fijas, le envía los
+        metadatos encontrados — y un fragmento del contenido de la página
+        como contexto adicional — directo desde tu navegador a la API de
+        Anthropic, usando tu propia clave, para que arme la referencia APA
+        7 final. Esto ayuda con casos ambiguos: autores organizacionales,
+        varios autores o apellidos compuestos que las reglas fijas no
+        siempre separan bien, fechas incompletas o metadatos faltantes. Tu
+        clave no pasa por ningún servidor de apa7ref ni se guarda en
+        ningún lado; se pierde al recargar la página. El uso tiene el
+        costo que aplique tu cuenta de Anthropic.
       </p>
       <p class="note" id="note-manual" style="display:none;">
         Escribe los datos de la fuente a mano y la página arma la
@@ -658,6 +744,19 @@ https://otrositio.com/pagina"></textarea>
 
   var ORG_MARKERS = /\b(inc|llc|ltd|corp|company|co\.|team|staff|editorial|redacci[oó]n|news|noticias|university|universidad|department|departamento|agency|agencia)\b/i;
 
+  // Partículas que forman parte del apellido (no del nombre de pila) en
+  // español, portugués, neerlandés, etc.: "de la Cruz", "van der Berg"...
+  var SURNAME_CONNECTORS = {
+    "de": 1, "del": 1, "la": 1, "las": 1, "los": 1, "van": 1, "der": 1,
+    "von": 1, "di": 1, "do": 1, "dos": 1, "da": 1, "das": 1, "mac": 1,
+    "mc": 1, "bin": 1, "ibn": 1, "al": 1
+  };
+  // Conjunciones que delatan una lista de nombres sin separar en vez de
+  // un solo nombre de persona (p. ej. "Ciencia y Tecnología").
+  var LIST_CONJUNCTIONS = { "y": 1, "e": 1, "and": 1, "&": 1 };
+  var NAME_PART_RE = /^[A-Za-zÀ-ÖØ-öø-ÿ'’-]+$/;
+  var MAX_PERSON_NAME_WORDS = 4;
+
   function getMeta(doc, names) {
     for (var i = 0; i < names.length; i++) {
       var el = doc.querySelector('meta[property="' + names[i] + '"]') || doc.querySelector('meta[name="' + names[i] + '"]');
@@ -747,16 +846,99 @@ https://otrositio.com/pagina"></textarea>
     return parsed.year + ", " + MONTHS_ES[parsed.month - 1] + " " + parsed.day;
   }
 
-  function formatAuthor(author) {
+  function looksLikePersonName(parts) {
+    if (parts.length < 2 || parts.length > MAX_PERSON_NAME_WORDS) return false;
+    for (var i = 0; i < parts.length; i++) {
+      var part = parts[i];
+      if (!NAME_PART_RE.test(part)) return false;
+      if (part.length > 1 && part === part.toUpperCase()) return false;
+      if (LIST_CONJUNCTIONS[part.toLowerCase()]) return false;
+    }
+    return true;
+  }
+
+  function extractSurname(parts, surnameWords) {
+    if (surnameWords && surnameWords > 0) {
+      var n = Math.max(1, Math.min(surnameWords, parts.length - 1));
+      return { surname: parts.slice(-n).join(" "), given: parts.slice(0, -n) };
+    }
+    var start = parts.length - 1;
+    while (start > 0 && SURNAME_CONNECTORS[parts[start - 1].toLowerCase().replace(/\.$/, "")]) {
+      start -= 1;
+    }
+    return { surname: parts.slice(start).join(" "), given: parts.slice(0, start) };
+  }
+
+  function formatAuthor(author, surnameWords) {
     if (!author) return null;
     var trimmedAuthor = author.trim();
+    if (!trimmedAuthor) return null;
     if (ORG_MARKERS.test(trimmedAuthor)) return trimmedAuthor;
     var parts = trimmedAuthor.split(/\s+/);
-    if (parts.length < 2) return trimmedAuthor;
-    var lastName = parts[parts.length - 1];
-    var firstNames = parts.slice(0, -1);
-    var initials = firstNames.map(function (n) { return n[0] ? n[0].toUpperCase() + "." : ""; }).join(" ");
-    return lastName + ", " + initials;
+    if (!looksLikePersonName(parts)) return trimmedAuthor;
+    var split = extractSurname(parts, surnameWords);
+    if (split.given.length === 0) return trimmedAuthor;
+    var initials = split.given.map(function (n) { return n[0] ? n[0].toUpperCase() + "." : ""; }).join(" ");
+    return split.surname + ", " + initials;
+  }
+
+  // Separa un campo "autor" que puede traer varias personas juntas,
+  // usando ";", "&", ", " y " y "/" and " (estas dos últimas solo antes de
+  // una palabra con mayúscula inicial, para no partir organizaciones como
+  // "Ciencia y Tecnología"). Si el resultado no parece una lista de
+  // nombres de persona válidos, se descarta y se devuelve el texto tal cual.
+  function splitAuthors(raw) {
+    if (!raw) return [];
+    var trimmed = raw.trim();
+    if (!trimmed) return [];
+    if (ORG_MARKERS.test(trimmed)) return [trimmed];
+
+    var normalized = trimmed
+      .replace(/\s*(?:;|&)\s*/g, ", ")
+      .replace(/\s+(?:y|and)\s+(?=[A-ZÀ-ÖØ-Þ])/g, ", ");
+    var candidates = normalized.split(",").map(function (s) { return s.trim(); }).filter(Boolean);
+
+    if (candidates.length < 2) return [trimmed];
+
+    for (var i = 0; i < candidates.length; i++) {
+      var candidateParts = candidates[i].split(/\s+/);
+      if (!ORG_MARKERS.test(candidates[i]) && !looksLikePersonName(candidateParts)) {
+        return [trimmed];
+      }
+    }
+    return candidates;
+  }
+
+  function formatAuthorsList(author, surnameWords) {
+    var names = splitAuthors(author || "");
+    var formatted = [];
+    for (var i = 0; i < names.length; i++) {
+      var f = formatAuthor(names[i], surnameWords);
+      if (f) formatted.push(f);
+    }
+    return formatted;
+  }
+
+  // Reglas de lista de autores de APA 7: 2 autores van con "&"; de 3 a 20,
+  // todos separados por comas con "&" antes del último; 21+ usa los
+  // primeros 19, puntos suspensivos y el último autor.
+  function joinAuthorsApa(authors) {
+    if (!authors || authors.length === 0) return null;
+    if (authors.length === 1) return authors[0];
+    if (authors.length === 2) return authors[0] + ", & " + authors[1];
+    if (authors.length <= 20) return authors.slice(0, -1).join(", ") + ", & " + authors[authors.length - 1];
+    return authors.slice(0, 19).join(", ") + ", ... " + authors[authors.length - 1];
+  }
+
+  // Autor(es) para la cita en texto: apellido único, "A & B" con dos
+  // autores, o "A et al." desde tres autores (válido desde la primera
+  // cita en APA 7).
+  function inTextAuthorsApa(authors) {
+    if (!authors || authors.length === 0) return null;
+    var surnames = authors.map(function (a) { return a.split(",")[0]; });
+    if (surnames.length === 1) return surnames[0];
+    if (surnames.length === 2) return surnames[0] + " & " + surnames[1];
+    return surnames[0] + " et al.";
   }
 
   function buildReference(meta) {
@@ -767,7 +949,8 @@ https://otrositio.com/pagina"></textarea>
     if (!/[.?!]$/.test(title)) title += ".";
 
     var siteName = (meta.site_name || "").trim();
-    var author = formatAuthor(meta.author);
+    var formattedAuthors = formatAuthorsList(meta.author, meta.author_surname_words);
+    var author = joinAuthorsApa(formattedAuthors);
 
     var authorPart, sitePart;
     if (author) {
@@ -787,9 +970,9 @@ https://otrositio.com/pagina"></textarea>
   function buildInTextCitation(meta) {
     var parsedDate = parseDate(meta.published_date);
     var year = parsedDate ? parsedDate.year : "s.f.";
-    var author = formatAuthor(meta.author) || meta.site_name || "Autor desconocido";
-    var lastName = author.split(",")[0];
-    return "(" + lastName + ", " + year + ")";
+    var formattedAuthors = formatAuthorsList(meta.author, meta.author_surname_words);
+    var authorIntext = inTextAuthorsApa(formattedAuthors) || meta.site_name || "Autor desconocido";
+    return "(" + authorIntext + ", " + year + ")";
   }
 
   /* ---------------- AI-assisted formatting ---------------- */
@@ -802,11 +985,20 @@ https://otrositio.com/pagina"></textarea>
       "APA 7: distingue autores individuales de autores organizacionales, usa " +
       "apellido e iniciales para personas, usa \"s.f.\" cuando falte la fecha, " +
       "y sigue el orden Autor. (Año). Título. Sitio. URL — omitiendo el sitio " +
-      "si es igual al nombre del autor. Si los metadatos están incompletos, " +
-      "usa el fragmento de contenido para inferir lo que falta de forma " +
-      "razonable; si algo simplemente no se puede determinar, sigue las " +
-      "reglas de APA 7 para ese caso (por ejemplo, sin autor: empieza por el " +
-      "título).\n\n" +
+      "si es igual al nombre del autor. Presta especial atención a los " +
+      "apellidos: escríbelos SIEMPRE completos, incluyendo apellidos " +
+      "compuestos o dobles (p. ej. \"Rojas Artavia, E. S.\", no \"Artavia, " +
+      "E. S. R.\"; \"de la Cruz, M.\", no \"Cruz, M. de la\"); si el campo de " +
+      "autor trae varias personas, sepáralas y aplica las reglas de lista de " +
+      "APA 7 (2 autores unidos con \"&\"; de 3 a 20, todos con \"&\" antes " +
+      "del último; 21 o más, los primeros 19 seguidos de puntos suspensivos " +
+      "y el último). En la cita en texto, usa \"et al.\" desde tres autores " +
+      "en adelante (incluso en la primera cita), y \"&\" entre los dos " +
+      "apellidos cuando sean exactamente dos. Si los metadatos están " +
+      "incompletos, usa el fragmento de contenido para inferir lo que falta " +
+      "de forma razonable; si algo simplemente no se puede determinar, sigue " +
+      "las reglas de APA 7 para ese caso (por ejemplo, sin autor: empieza " +
+      "por el título).\n\n" +
       "Responde ÚNICAMENTE con un objeto JSON, sin texto adicional ni bloques " +
       "de código, con exactamente estas claves:\n" +
       '{"reference": "<referencia completa en APA 7>", "inText": "<cita en texto, ej. (Apellido, 2024)>"}' +
@@ -1014,11 +1206,17 @@ https://otrositio.com/pagina"></textarea>
     try {
       var pathname = new URL(url).pathname;
       var filename = decodeURIComponent(pathname.split("/").pop() || "");
-      filename = filename.replace(/\.pdf$/i, "").replace(/[-_]+/g, " ").trim();
-      return filename || null;
+      return titleFromFilename(filename);
     } catch (e) {
       return null;
     }
+  }
+
+  // Igual que filenameToTitle, pero a partir de un nombre de archivo local
+  // (File.name) en vez de una URL — para PDF subidos sin ningún enlace.
+  function titleFromFilename(name) {
+    var base = String(name || "").replace(/\.pdf$/i, "").replace(/[-_]+/g, " ").trim();
+    return base || null;
   }
 
   function parsePdfDate(raw) {
@@ -1031,7 +1229,7 @@ https://otrositio.com/pagina"></textarea>
     return year + "-" + month + "-" + day;
   }
 
-  function pdfMetaFromBuffer(url, buffer) {
+  function pdfMetaFromBuffer(url, buffer, fallbackTitle) {
     return pdfjsLib.getDocument({ data: buffer }).promise.then(function (pdfDoc) {
       var metadataPromise = pdfDoc.getMetadata().catch(function () { return { info: {} }; });
       var excerptPromise = pdfDoc.getPage(1)
@@ -1046,10 +1244,10 @@ https://otrositio.com/pagina"></textarea>
       var excerpt = results[1];
       var info = (metaResult && metaResult.info) || {};
       var meta = {
-        url: url,
-        title: (info.Title && String(info.Title).trim()) || filenameToTitle(url) || "Sin título",
+        url: url || "",
+        title: (info.Title && String(info.Title).trim()) || fallbackTitle || (url ? filenameToTitle(url) : null) || "Sin título",
         author: (info.Author && String(info.Author).trim()) || null,
-        site_name: siteNameFromUrl(url),
+        site_name: url ? siteNameFromUrl(url) : null,
         published_date: parsePdfDate(info.CreationDate) || parsePdfDate(info.ModDate),
         excerpt: excerpt
       };
@@ -1087,7 +1285,7 @@ https://otrositio.com/pagina"></textarea>
     }
     return fetchBinary(url)
       .then(function (buffer) { return pdfMetaFromBuffer(url, buffer); })
-      .then(function (meta) { return finalizeMeta(meta, run); })
+      .then(function (meta) { meta.author_surname_words = run.surnameWords; return finalizeMeta(meta, run); })
       .catch(function (err) {
         return {
           ok: false,
@@ -1097,26 +1295,35 @@ https://otrositio.com/pagina"></textarea>
       });
   }
 
-  function processPdfFromFile(url, file, run) {
+  function processPdfFromFile(url, file, run, fallbackTitle) {
     return new Promise(function (resolve) {
       var reader = new FileReader();
       reader.onload = function () {
-        pdfMetaFromBuffer(url, reader.result)
-          .then(function (meta) { return finalizeMeta(meta, run); })
+        pdfMetaFromBuffer(url, reader.result, fallbackTitle)
+          .then(function (meta) {
+            meta.author_surname_words = run.surnameWords;
+            return finalizeMeta(meta, run);
+          })
           .then(resolve)
           .catch(function (err) {
             resolve({
               ok: false,
-              url: url,
+              url: url || file.name,
               error: "no se pudo leer el archivo subido: " + ((err && err.message) || "error desconocido")
             });
           });
       };
       reader.onerror = function () {
-        resolve({ ok: false, url: url, error: "no se pudo leer el archivo subido." });
+        resolve({ ok: false, url: url || file.name, error: "no se pudo leer el archivo subido." });
       };
       reader.readAsArrayBuffer(file);
     });
+  }
+
+  // Procesa un PDF local añadido directamente (sin URL) desde la cola de
+  // "Archivos PDF sin enlace": la referencia final no lleva URL.
+  function processPdfFileStandalone(file, run) {
+    return processPdfFromFile("", file, run, titleFromFilename(file.name));
   }
 
   function generateReference(rawUrl, run) {
@@ -1143,7 +1350,8 @@ https://otrositio.com/pagina"></textarea>
         author: extractAuthor(doc),
         site_name: extractSiteName(doc, url),
         published_date: extractPublishedDate(doc),
-        excerpt: extractExcerpt(doc)
+        excerpt: extractExcerpt(doc),
+        author_surname_words: run.surnameWords
       };
       return finalizeMeta(meta, run);
     }).catch(function (err) {
@@ -1163,7 +1371,8 @@ https://otrositio.com/pagina"></textarea>
       title: fields.title || null,
       author: fields.author || null,
       site_name: fields.site || null,
-      published_date: fields.date || null
+      published_date: fields.date || null,
+      author_surname_words: fields.surnameWords || null
     };
     if (!meta.title) {
       return { ok: false, url: meta.url || "(entrada manual)", error: "el título es obligatorio en el modo manual." };
@@ -1226,9 +1435,45 @@ https://otrositio.com/pagina"></textarea>
   var manualTitle = document.getElementById("manual-title");
   var manualSite = document.getElementById("manual-site");
   var manualUrl = document.getElementById("manual-url");
+  var manualSurnameWords = document.getElementById("manual-surname-words");
+
+  var extraControls = document.getElementById("extra-controls");
+  var surnameWordsInput = document.getElementById("surname-words-input");
+  var fileUploadInput = document.getElementById("file-upload-input");
+  var fileQueueEl = document.getElementById("file-queue");
+  var pendingFiles = [];
+
+  function parseSurnameWords(raw) {
+    var n = parseInt(String(raw || "").trim(), 10);
+    return n > 0 ? n : null;
+  }
+
+  function renderFileQueue() {
+    fileQueueEl.innerHTML = "";
+    pendingFiles.forEach(function (file, i) {
+      var row = document.createElement("div");
+      row.className = "file-queue-item";
+      row.innerHTML = '<span>' + escapeHtml(file.name) + '</span>' +
+        '<button type="button" class="remove-file" data-i="' + i + '">quitar</button>';
+      fileQueueEl.appendChild(row);
+    });
+    fileQueueEl.querySelectorAll(".remove-file").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        pendingFiles.splice(parseInt(btn.getAttribute("data-i"), 10), 1);
+        renderFileQueue();
+      });
+    });
+  }
+
+  fileUploadInput.addEventListener("change", function (e) {
+    var files = e.target.files ? Array.prototype.slice.call(e.target.files) : [];
+    files.forEach(function (f) { pendingFiles.push(f); });
+    fileUploadInput.value = "";
+    renderFileQueue();
+  });
 
   var currentMode = "extractive";
-  var lastRun = { mode: "extractive", apiKey: "", model: "" };
+  var lastRun = { mode: "extractive", apiKey: "", model: "", surnameWords: null };
 
   function setMode(mode) {
     currentMode = mode;
@@ -1242,6 +1487,7 @@ https://otrositio.com/pagina"></textarea>
     tabManual.setAttribute("aria-selected", String(isManual));
     aiControls.classList.toggle("show", isAi);
     manualForm.classList.toggle("show", isManual);
+    extraControls.classList.toggle("hide", isManual);
     textarea.style.display = isManual ? "none" : "block";
     urlsLabel.style.display = isManual ? "none" : "block";
     noteExtractive.style.display = (!isAi && !isManual) ? "block" : "none";
@@ -1254,28 +1500,30 @@ https://otrositio.com/pagina"></textarea>
   tabAi.addEventListener("click", function () { setMode("ai"); });
   tabManual.addEventListener("click", function () { setMode("manual"); });
 
-  function renderPending(urls) {
+  function renderPending(sources) {
     results.innerHTML = "";
-    urls.forEach(function (u, i) {
+    sources.forEach(function (s, i) {
       var card = document.createElement("div");
       card.className = "result-card pending";
       card.id = "result-" + i;
       card.innerHTML =
-        '<p class="src">' + u + '</p>' +
+        '<p class="src">' + escapeHtml(s.label) + '</p>' +
         '<p class="ref-text">' + (currentMode === "ai" ? "Generando referencia con IA…" : "Generando referencia…") + '</p>';
       results.appendChild(card);
     });
   }
 
-  function renderResult(index, result, includeInText) {
+  function renderResult(index, result, includeInText, source) {
     var card = document.getElementById("result-" + index);
     if (!card) return;
+    var label = (source && source.label) || result.url;
+    var isFileSource = !!(source && source.type === "file");
     if (result.ok) {
       card.className = "result-card";
       var badge = result.aiGenerated ? '<span class="ai-badge">Generado con IA</span><br>' : "";
       var intextHtml = includeInText ? '<p class="intext">' + escapeHtml(result.inText) + '</p>' : "";
       card.innerHTML =
-        '<p class="src">' + escapeHtml(result.url) + '</p>' +
+        '<p class="src">' + escapeHtml(label) + '</p>' +
         badge +
         '<p class="ref-text">' + escapeHtml(result.reference) + '</p>' +
         intextHtml +
@@ -1288,7 +1536,7 @@ https://otrositio.com/pagina"></textarea>
     } else {
       card.className = "result-card error";
       var uploadHtml = "";
-      if (looksLikePdfUrl(result.url)) {
+      if (!isFileSource && looksLikePdfUrl(result.url)) {
         uploadHtml =
           '<div class="pdf-fallback">' +
           '<label class="pdf-fallback-label" for="pdf-upload-' + index + '">' +
@@ -1298,7 +1546,7 @@ https://otrositio.com/pagina"></textarea>
           '</div>';
       }
       card.innerHTML =
-        '<p class="src">' + escapeHtml(result.url) + '</p>' +
+        '<p class="src">' + escapeHtml(label) + '</p>' +
         '<p class="ref-text">No se pudo generar: ' + escapeHtml(result.error) + '</p>' +
         uploadHtml;
 
@@ -1310,8 +1558,8 @@ https://otrositio.com/pagina"></textarea>
           card.className = "result-card pending";
           card.querySelector(".ref-text").textContent = lastRun.mode === "ai" ? "Leyendo PDF subido y generando con IA…" : "Leyendo PDF subido…";
           processPdfFromFile(result.url, file, lastRun).then(function (uploadResult) {
-            lastResults[index] = { result: uploadResult, includeInText: includeInText };
-            renderResult(index, uploadResult, includeInText);
+            lastResults[index] = { result: uploadResult, includeInText: includeInText, source: source };
+            renderResult(index, uploadResult, includeInText, source);
           });
         });
       }
@@ -1337,9 +1585,10 @@ https://otrositio.com/pagina"></textarea>
         date: manualDate.value.trim(),
         title: manualTitle.value.trim(),
         site: manualSite.value.trim(),
-        url: manualUrl.value.trim()
+        url: manualUrl.value.trim(),
+        surnameWords: parseSurnameWords(manualSurnameWords.value)
       };
-      lastRun = { mode: "manual", apiKey: "", model: "" };
+      lastRun = { mode: "manual", apiKey: "", model: "", surnameWords: fields.surnameWords };
       statusText.textContent = "";
       var result = generateManualReference(fields);
       results.innerHTML = "";
@@ -1347,30 +1596,40 @@ https://otrositio.com/pagina"></textarea>
       card.className = "result-card";
       card.id = "result-0";
       results.appendChild(card);
-      lastResults = [{ result: result, includeInText: includeInText }];
-      renderResult(0, result, includeInText);
+      lastResults = [{ result: result, includeInText: includeInText, source: null }];
+      renderResult(0, result, includeInText, null);
       return;
     }
 
     var urls = textarea.value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean);
-    if (urls.length === 0) return;
+    var sources = urls.map(function (u) { return { type: "url", value: u, label: u }; })
+      .concat(pendingFiles.map(function (f) { return { type: "file", value: f, label: f.name + " (archivo local)" }; }));
+    if (sources.length === 0) return;
 
     if (currentMode === "ai" && !aiKeyInput.value.trim()) {
       statusText.textContent = "Ingresa tu clave de API de Anthropic primero.";
       return;
     }
 
-    lastRun = { mode: currentMode, apiKey: aiKeyInput.value.trim(), model: aiModelSelect.value };
+    lastRun = {
+      mode: currentMode,
+      apiKey: aiKeyInput.value.trim(),
+      model: aiModelSelect.value,
+      surnameWords: parseSurnameWords(surnameWordsInput.value)
+    };
     statusText.textContent = "";
     generateBtn.disabled = true;
     generateBtn.textContent = "Generando…";
-    renderPending(urls);
+    renderPending(sources);
     lastResults = [];
 
-    var tasks = urls.map(function (u, i) {
-      return generateReference(u, lastRun).then(function (result) {
-        lastResults[i] = { result: result, includeInText: includeInText };
-        renderResult(i, result, includeInText);
+    var tasks = sources.map(function (s, i) {
+      var task = s.type === "file"
+        ? processPdfFileStandalone(s.value, lastRun)
+        : generateReference(s.value, lastRun);
+      return task.then(function (result) {
+        lastResults[i] = { result: result, includeInText: includeInText, source: s };
+        renderResult(i, result, includeInText, s);
       });
     });
 
