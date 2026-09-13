@@ -3,6 +3,7 @@ from apa7ref.formatter import (
     build_in_text_citation,
     build_reference,
     format_author,
+    format_authors_list,
 )
 
 
@@ -81,3 +82,74 @@ def test_build_in_text_citation():
         published_date="2024-03-15",
     )
     assert build_in_text_citation(meta) == "(Doe, 2024)"
+
+
+def test_format_author_apellido_compuesto_con_particula():
+    """Apellidos con partícula (de, la, van, von...) se detectan solos,
+    sin necesidad de indicar surname_words."""
+    assert format_author("María de la Cruz") == "de la Cruz, M."
+    assert format_author("Ludwig van der Berg") == "van der Berg, L."
+
+
+def test_format_author_apellido_compuesto_sin_particula_requiere_override():
+    """Sin partícula, un apellido doble (p. ej. en español) no se detecta
+    automáticamente..."""
+    assert format_author("Efraín Sebastián Rojas Artavia") == "Artavia, E. S. R."
+    # ...pero surname_words permite indicarlo explícitamente.
+    assert (
+        format_author("Efraín Sebastián Rojas Artavia", surname_words=2)
+        == "Rojas Artavia, E. S."
+    )
+
+
+def test_format_authors_list_varios_autores():
+    """Un campo de autor con varias personas se separa en autores
+    individuales, cada uno formateado 'Apellido, N.'."""
+    authors = format_authors_list("Juan Pérez y María López")
+    assert authors == ["Pérez, J.", "López, M."]
+
+
+def test_format_authors_list_no_destroza_organizacion_con_y():
+    """Una organización que contiene ' y ' (p. ej. 'Ciencia y Tecnología')
+    no se parte en dos autores porque las partes resultantes no parecen
+    nombres de persona válidos."""
+    authors = format_authors_list("Ciencia y Tecnología")
+    assert authors == ["Ciencia y Tecnología"]
+
+
+def test_build_reference_dos_autores_usa_ampersand():
+    """Con dos autores, la referencia los une con '&' antes del último."""
+    meta = Metadata(
+        url="https://ejemplo.com/articulo",
+        title="Un estudio",
+        author="Juan Pérez y María López",
+        site_name="Ejemplo",
+        published_date="2024",
+    )
+    reference = build_reference(meta)
+    assert reference.startswith("Pérez, J., & López, M. (2024).")
+
+
+def test_build_in_text_citation_tres_autores_usa_et_al():
+    """Con tres autores o más, la cita en texto usa 'et al.' (regla de
+    APA 7, aplicable incluso en la primera cita)."""
+    meta = Metadata(
+        url="https://ejemplo.com/articulo",
+        title="Un estudio",
+        author="Ana Gómez, Luis Ruiz y Carla Solís",
+        site_name="Ejemplo",
+        published_date="2024",
+    )
+    assert build_in_text_citation(meta) == "(Gómez et al., 2024)"
+
+
+def test_build_in_text_citation_dos_autores_usa_ampersand():
+    """Con dos autores, la cita en texto los une con '&'."""
+    meta = Metadata(
+        url="https://ejemplo.com/articulo",
+        title="Un estudio",
+        author="Juan Pérez y María López",
+        site_name="Ejemplo",
+        published_date="2024",
+    )
+    assert build_in_text_citation(meta) == "(Pérez & López, 2024)"
