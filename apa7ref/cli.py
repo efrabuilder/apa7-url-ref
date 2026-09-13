@@ -43,15 +43,27 @@ def _build_parser() -> argparse.ArgumentParser:
         "--in-text", action="store_true",
         help="Incluir también la cita en texto (Autor, Año) junto a cada referencia.",
     )
+    parser.add_argument(
+        "--surname-words", type=int, metavar="N", default=None,
+        help="Fuerza que las últimas N palabras de CADA autor formen el "
+             "apellido (p. ej. 2 para apellidos dobles en español sin "
+             "partícula, como 'Rojas Artavia'). Se aplica a todos los "
+             "autores de todas las URLs de esta ejecución. Sin esta "
+             "opción, solo se detectan automáticamente apellidos con "
+             "partícula (de, del, la, van, von...); varios autores en un "
+             "mismo campo (separados por ';', '&', ' y ' / ' and ') "
+             "también se manejan sin necesidad de esta opción.",
+    )
     return parser
 
 
-def _process(url: str, include_in_text: bool) -> str:
+def _process(url: str, include_in_text: bool, surname_words: Optional[int]) -> str:
     try:
         meta = fetch_metadata(url)
     except FetchError as exc:
         return f"[ERROR] {url}: {exc}"
 
+    meta.author_surname_words = surname_words
     reference = build_reference(meta)
     if include_in_text:
         return f"{reference}  {build_in_text_citation(meta)}"
@@ -70,7 +82,7 @@ def run(argv: Optional[List[str]] = None, stdout: TextIO = sys.stdout) -> int:
         parser.print_help(stdout)
         return 1
 
-    lines = [_process(url, args.in_text) for url in urls]
+    lines = [_process(url, args.in_text, args.surname_words) for url in urls]
     output_text = "\n\n".join(lines)
 
     if args.output:
