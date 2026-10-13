@@ -120,3 +120,8 @@ pytest tests/
 ## Licencia
 
 MIT
+
+
+## Si aparece "No se pudo descargar la página tras probar varios proxies"
+
+Los proxies públicos (allorigins, codetabs) tienen límites y caídas frecuentes. La solución estable es desplegar tu propio proxy gratis en Cloudflare Workers: sigue los pasos del encabezado de `apa7ref-proxy.js` y pega la URL resultante en `OWN_WORKER_URL` dentro de `index.html`. El mensaje de error ahora indica qué respondió cada proxy (por ejemplo `allorigins: HTTP 429; codetabs: tiempo agotado`).
