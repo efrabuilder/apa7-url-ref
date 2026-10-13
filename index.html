@@ -1079,20 +1079,55 @@ https://otrositio.com/pagina"></textarea>
   }
 
   // Cambia esto por la URL de tu propio Worker si desplegaste uno
-  // (ver worker/apa7ref-proxy.js). Déjalo en "" para usar solo los
-  // proxies públicos de respaldo.
+  // (ver apa7ref-proxy.js en la raíz del repo). Déjalo en "" para usar
+  // solo los proxies públicos de respaldo.
+  // OJO: corsproxy.io ya no se incluye porque exige API key fuera de
+  // desarrollo local y responde HTTP 401 desde un sitio publicado.
   var OWN_WORKER_URL = ""; // ej: "https://apa7ref-proxy.tu-usuario.workers.dev"
 
+  /**
+   * @param {string} url
+   * @returns {Array<{name: string, buildUrl: function(): string}>}
+   */
   function proxyBuilders(url) {
     var encoded = encodeURIComponent(url);
     var builders = [];
     if (OWN_WORKER_URL) {
-      builders.push(function () { return OWN_WORKER_URL + "?url=" + encoded; });
+      builders.push({
+        name: "worker propio",
+        buildUrl: function () { return OWN_WORKER_URL + "?url=" + encoded; }
+      });
     }
-    builders.push(function () { return "https://api.allorigins.win/raw?url=" + encoded; });
-    builders.push(function () { return "https://api.codetabs.com/v1/proxy?quest=" + encoded; });
-    builders.push(function () { return "https://corsproxy.io/?url=" + encoded; });
+    builders.push({
+      name: "allorigins",
+      buildUrl: function () { return "https://api.allorigins.win/raw?url=" + encoded; }
+    });
+    builders.push({
+      name: "codetabs",
+      buildUrl: function () { return "https://api.codetabs.com/v1/proxy?quest=" + encoded; }
+    });
     return builders;
+  }
+
+  /**
+   * Traduce el error de un intento a un texto corto y útil.
+   * @param {*} err
+   * @returns {string}
+   */
+  function describeFetchError(err) {
+    if (err && err.name === "TimeoutError") return "tiempo agotado";
+    if (err && err.name === "TypeError") return "bloqueado o sin conexión (CORS/red)";
+    return (err && err.message) || "error desconocido";
+  }
+
+  /**
+   * Une los fallos de todos los proxies: "allorigins: HTTP 429; codetabs: tiempo agotado".
+   * @param {Array<string>} failures
+   * @returns {string}
+   */
+  function formatProxyFailures(failures) {
+    if (!failures.length) return "";
+    return " (" + failures.join("; ") + ")";
   }
 
   // Dominios donde el modo extractivo casi nunca funciona vía proxy
@@ -1136,15 +1171,21 @@ https://otrositio.com/pagina"></textarea>
     return text.slice(0, 5) === "%PDF-";
   }
 
+  /**
+   * @param {string} url
+   * @returns {Promise<string>}
+   */
   function fetchHtml(url) {
     var builders = proxyBuilders(url);
-    var lastError = null;
-    var attempt = function (index) {
+    var failures = [];
+    function attempt(index) {
       if (index >= builders.length) {
-        var suffix = lastError ? " (" + lastError + ")" : "";
-        return Promise.reject(new Error("No se pudo descargar la página tras probar varios proxies" + suffix + "."));
+        return Promise.reject(new Error(
+          "No se pudo descargar la página tras probar varios proxies" + formatProxyFailures(failures) + "."
+        ));
       }
-      return fetchWithTimeout(builders[index](), 15000)
+      var proxy = builders[index];
+      return fetchWithTimeout(proxy.buildUrl(), 15000)
         .then(function (res) {
           if (!res.ok) throw new Error("HTTP " + res.status);
           return res.text();
@@ -1161,22 +1202,28 @@ https://otrositio.com/pagina"></textarea>
           if (err && err.pdf) {
             return Promise.reject(err);
           }
-          lastError = (err && err.message) || "error desconocido";
+          failures.push(proxy.name + ": " + describeFetchError(err));
           return attempt(index + 1);
         });
-    };
+    }
     return attempt(0);
   }
 
+  /**
+   * @param {string} url
+   * @returns {Promise<ArrayBuffer>}
+   */
   function fetchBinary(url) {
     var builders = proxyBuilders(url);
-    var lastError = null;
-    var attempt = function (index) {
+    var failures = [];
+    function attempt(index) {
       if (index >= builders.length) {
-        var suffix = lastError ? " (" + lastError + ")" : "";
-        return Promise.reject(new Error("no se pudo descargar el archivo tras probar varios proxies" + suffix + "."));
+        return Promise.reject(new Error(
+          "no se pudo descargar el archivo tras probar varios proxies" + formatProxyFailures(failures) + "."
+        ));
       }
-      return fetchWithTimeout(builders[index](), 25000)
+      var proxy = builders[index];
+      return fetchWithTimeout(proxy.buildUrl(), 25000)
         .then(function (res) {
           if (!res.ok) throw new Error("HTTP " + res.status);
           return res.arrayBuffer();
@@ -1186,10 +1233,10 @@ https://otrositio.com/pagina"></textarea>
           return buffer;
         })
         .catch(function (err) {
-          lastError = (err && err.message) || "error desconocido";
+          failures.push(proxy.name + ": " + describeFetchError(err));
           return attempt(index + 1);
         });
-    };
+    }
     return attempt(0);
   }
 
