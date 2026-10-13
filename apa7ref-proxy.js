@@ -31,31 +31,36 @@
  * disponibilidad y los límites de proxies públicos compartidos.
  */
 
-const ALLOWED_ORIGIN = "*"; // si quieres restringirlo a tu dominio, pon
-                             // aquí "https://efrabuilder.github.io"
+const ALLOWED_ORIGINS = [
+  "https://efrabuilder.github.io",
+  "http://localhost:8000",
+  "http://127.0.0.1:8000"
+]; // agrega aquí otros orígenes desde los que uses la app
 
 export default {
   async fetch(request) {
+    const origin = request.headers.get("Origin") || "";
+    const cors = corsHeaders(origin);
     const requestUrl = new URL(request.url);
     const target = requestUrl.searchParams.get("url");
 
     if (request.method === "OPTIONS") {
-      return new Response(null, { headers: corsHeaders() });
+      return new Response(null, { headers: cors });
     }
 
     if (!target) {
-      return jsonResponse({ error: "Falta el parámetro ?url=" }, 400);
+      return jsonResponse({ error: "Falta el parámetro ?url=" }, 400, cors);
     }
 
     let targetUrl;
     try {
       targetUrl = new URL(target);
     } catch (e) {
-      return jsonResponse({ error: "URL inválida." }, 400);
+      return jsonResponse({ error: "URL inválida." }, 400, cors);
     }
 
     if (targetUrl.protocol !== "http:" && targetUrl.protocol !== "https:") {
-      return jsonResponse({ error: "Solo se permiten URLs http/https." }, 400);
+      return jsonResponse({ error: "Solo se permiten URLs http/https." }, 400, cors);
     }
 
     try {
@@ -79,27 +84,40 @@ export default {
       return new Response(body, {
         status: upstream.status,
         headers: {
-          ...corsHeaders(),
+          ...cors,
           "Content-Type": contentType
         }
       });
     } catch (err) {
-      return jsonResponse({ error: "No se pudo descargar la URL de destino: " + err.message }, 502);
+      return jsonResponse({ error: "No se pudo descargar la URL de destino: " + err.message }, 502, cors);
     }
   }
 };
 
-function corsHeaders() {
+/**
+ * Solo refleja el origen si está en la lista permitida.
+ * @param {string} origin
+ * @returns {Record<string, string>}
+ */
+function corsHeaders(origin) {
+  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   return {
-    "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
+    "Access-Control-Allow-Origin": allowed,
     "Access-Control-Allow-Methods": "GET, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type"
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Vary": "Origin"
   };
 }
 
-function jsonResponse(obj, status) {
+/**
+ * @param {object} obj
+ * @param {number} status
+ * @param {Record<string, string>} cors
+ * @returns {Response}
+ */
+function jsonResponse(obj, status, cors) {
   return new Response(JSON.stringify(obj), {
     status: status || 200,
-    headers: { ...corsHeaders(), "Content-Type": "application/json" }
+    headers: { ...cors, "Content-Type": "application/json" }
   });
 }
